@@ -11,6 +11,11 @@ export const state = {
   edgeLine: null,
   curbs: [],
   fighters: [],
+
+  // Mapa activo (obstáculos/rampas/pozos). mapId se elige en el menú/lobby.
+  mapId: "clasico",
+  mapGroup: null,
+  curMap: null,
   players: 1,
   selP1: 0,
   selP2: 1,

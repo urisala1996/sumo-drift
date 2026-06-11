@@ -1,6 +1,6 @@
 import { RING_R0, WINS_NEEDED } from './config.js';
 import { state } from './state.js';
-import { setRing } from './scene.js';
+import { setRing, loadMap } from './scene.js';
 import { setupFighters, placeFighters } from './cars.js';
 import { refreshScoreUI, banner } from './hud.js';
 import { showControls } from './input.js';
@@ -13,9 +13,10 @@ export function hide(id) { document.getElementById(id).classList.add("hidden"); 
 // el host desde el lobby (los clientes arrancan vía applyMeta -> clientStartMatch).
 export function startMatch() {
   setupFighters();
+  loadMap(state.mapId);
   showControls();
   state.round = 1;
-  if (state.mode === "online") setStatus("playing");
+  if (state.mode === "online") { writeMeta({ map: state.mapId }); setStatus("playing"); }
   startRound();
   hide("menu"); hide("endScr"); hide("lobby");
   document.getElementById("hud").style.display = "block";
@@ -84,6 +85,7 @@ export function endMatch(winner) {
 // posiciones llegan sincronizadas desde el host).
 export function clientStartMatch() {
   setupFighters();
+  loadMap(net.meta.map || "clasico");
   showControls();
   placeFighters();
   hide("menu"); hide("endScr"); hide("lobby");

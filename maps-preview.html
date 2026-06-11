@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DRIFT·SUMO — Previsualización de mapas</title>
+<style>
+  :root{--ink:#1b1230;--paper:#f5ead7;--sun:#ff8e3c;--hot:#ff3d6e;--mint:#3ddbb4;--sky:#2a1e4f;--y:#ffd93d}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--sky);
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;color:var(--paper)}
+  #c{position:fixed;inset:0;display:block}
+  #top{position:fixed;top:0;left:0;right:0;padding:14px 16px;display:flex;flex-direction:column;
+    align-items:center;gap:10px;pointer-events:none}
+  .title{font-size:13px;letter-spacing:3px;font-weight:800;opacity:.7}
+  .title b{color:var(--sun)} .title i{color:var(--hot);font-style:italic}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;pointer-events:auto;
+    background:rgba(0,0,0,.3);padding:5px;border-radius:999px}
+  .tabs button{border:none;background:transparent;color:var(--paper);font-family:inherit;
+    font-size:12px;font-weight:800;letter-spacing:1px;padding:9px 16px;border-radius:999px;cursor:pointer;opacity:.55}
+  .tabs button.on{background:linear-gradient(180deg,var(--sun),var(--hot));color:var(--ink);opacity:1}
+  #info{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);text-align:center;max-width:90%}
+  #mapName{font-size:min(11vw,40px);font-weight:900;font-style:italic;letter-spacing:1px}
+  #mapDesc{margin-top:4px;font-size:13px;opacity:.8}
+  #legend{position:fixed;left:0;right:0;bottom:20px;display:flex;gap:16px;justify-content:center;
+    flex-wrap:wrap;font-size:11px;font-weight:700;letter-spacing:1px;opacity:.85;pointer-events:none}
+  .leg{display:flex;align-items:center;gap:6px}
+  .sw{width:14px;height:14px;border-radius:4px}
+  #hint{position:fixed;right:14px;top:14px;font-size:11px;opacity:.5;letter-spacing:1px}
+</style>
+<script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top">
+  <div class="title">DRIFT<b>·</b><i>SUMO</i> · PREVISUALIZACIÓN DE MAPAS</div>
+  <div class="tabs" id="tabs"></div>
+</div>
+<div id="hint">⟳ órbita automática</div>
+<div id="info"><div id="mapName"></div><div id="mapDesc"></div></div>
+<div id="legend">
+  <div class="leg"><span class="sw" style="background:#5a4d95"></span>Pilar (rebote)</div>
+  <div class="leg"><span class="sw" style="background:#4a3d85"></span>Muro (rebote)</div>
+  <div class="leg"><span class="sw" style="background:#ffd93d"></span>Rampa (salto)</div>
+  <div class="leg"><span class="sw" style="background:#0a0814;border:1px solid #ff3d6e"></span>Pozo (caes)</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { MAPS, buildMapFeatures } from './js/maps.js';
+
+const RING_R0 = 36;
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x2a1e4f);
+scene.fog = new THREE.Fog(0x2a1e4f, 200, 420);
+
+let camAngle = Math.PI / 4, camRadius = 68, camHeight = 56;
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 600);
+function frameCamera() {
+  const aspect = innerWidth / innerHeight, d = 46;
+  camera.left = -d * aspect; camera.right = d * aspect; camera.top = d; camera.bottom = -d;
+  camera.position.set(Math.cos(camAngle) * camRadius, camHeight, Math.sin(camAngle) * camRadius);
+  camera.lookAt(0, 0, 0);
+  camera.updateProjectionMatrix();
+}
+
+scene.add(new THREE.AmbientLight(0x8877cc, .9));
+const sun = new THREE.DirectionalLight(0xffd9a0, 1.15);
+sun.position.set(30, 55, 18);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
+sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
+scene.add(sun);
+
+const deep = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000),
+  new THREE.MeshLambertMaterial({ color: 0x1c1340 }));
+deep.rotation.x = -Math.PI / 2; deep.position.y = -46; scene.add(deep);
+
+// --- Ring base (igual estilo que el juego), tamaño fijo RING_R0 para la vista ---
+let platformMesh = null;
+function buildRing() {
+  const g = new THREE.Group();
+  const platform = new THREE.Mesh(
+    new THREE.CylinderGeometry(RING_R0, RING_R0 * 0.92, 7, 48),
+    new THREE.MeshLambertMaterial({ color: 0x3d3170 }));
+  platform.position.y = -3.5; platform.receiveShadow = true; g.add(platform);
+  platformMesh = platform;
+  const skirt = new THREE.Mesh(
+    new THREE.CylinderGeometry(RING_R0 * 1.001, RING_R0 * 0.95, 2.2, 48, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0x2b2150, side: THREE.DoubleSide }));
+  skirt.position.y = -1.1; g.add(skirt);
+  const edge = new THREE.Mesh(
+    new THREE.RingGeometry(RING_R0 * 0.945, RING_R0, 64),
+    new THREE.MeshBasicMaterial({ color: 0xf5ead7, side: THREE.DoubleSide }));
+  edge.rotation.x = -Math.PI / 2; edge.position.y = 0.03; g.add(edge);
+  const cc = new THREE.Mesh(new THREE.RingGeometry(RING_R0 * 0.18, RING_R0 * 0.2, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffd9a0, side: THREE.DoubleSide }));
+  cc.rotation.x = -Math.PI / 2; cc.position.y = 0.03; g.add(cc);
+  // bordillos a/b
+  const curbGeo = new THREE.BoxGeometry(1.5, .55, 2.2);
+  const mR = new THREE.MeshLambertMaterial({ color: 0xff3d6e });
+  const mW = new THREE.MeshLambertMaterial({ color: 0xf5ead7 });
+  for (let i = 0; i < 36; i++) {
+    const a = i / 36 * Math.PI * 2;
+    const c = new THREE.Mesh(curbGeo, i % 2 ? mR : mW);
+    c.position.set(Math.cos(a) * (RING_R0 + .6), .15, Math.sin(a) * (RING_R0 + .6));
+    c.rotation.y = -a + Math.PI / 2; c.castShadow = true; g.add(c);
+  }
+  scene.add(g);
+}
+buildRing();
+
+// Marcadores de las 4 plazas de salida (para ver que los pozos no las pisan).
+const spawnMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .25 });
+for (let i = 0; i < 4; i++) {
+  const a = -Math.PI / 2 + i * Math.PI / 2;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(2.2, 2.6, 24), spawnMat);
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(Math.cos(a) * RING_R0 * .55, 0.06, Math.sin(a) * RING_R0 * .55);
+  scene.add(ring);
+}
+
+// --- Grupo de obstáculos del mapa activo, reconstruido al cambiar de pestaña ---
+let featureGroup = new THREE.Group();
+scene.add(featureGroup);
+
+function disposeGroup(g) {
+  g.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+  });
+  scene.remove(g);
+}
+
+function showMap(map) {
+  disposeGroup(featureGroup);
+  featureGroup = new THREE.Group();
+  buildMapFeatures(featureGroup, map);
+  scene.add(featureGroup);
+  if (platformMesh) platformMesh.material.color.setHex(map.floor);
+  document.getElementById('mapName').textContent = map.name;
+  document.getElementById('mapDesc').textContent = map.desc;
+  document.querySelectorAll('#tabs button').forEach(b =>
+    b.classList.toggle('on', b.dataset.id === map.id));
+}
+
+const tabs = document.getElementById('tabs');
+MAPS.forEach(m => {
+  const b = document.createElement('button');
+  b.textContent = m.name; b.dataset.id = m.id;
+  b.onclick = () => showMap(m);
+  tabs.appendChild(b);
+});
+showMap(MAPS[0]);
+
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); frameCamera(); });
+frameCamera();
+
+let last = 0;
+function loop(t) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(.05, (t - last) / 1000 || .016); last = t;
+  camAngle += dt * 0.25;
+  frameCamera();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,7 +1,24 @@
 import { CARS } from './config.js';
+import { MAPS } from './maps.js';
 import { state } from './state.js';
 import { startMatch, show, hide, goToMenuFromOnline } from './rounds.js';
 import { buildLobby, openLobby } from './lobby.js';
+
+function buildMapPicker() {
+  const row = document.getElementById("menuMaps");
+  row.innerHTML = "";
+  MAPS.forEach(m => {
+    const b = document.createElement("button");
+    b.textContent = m.name; b.dataset.id = m.id;
+    b.title = m.desc;
+    b.classList.toggle("on", m.id === state.mapId);
+    b.onclick = () => {
+      state.mapId = m.id;
+      row.querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.id === m.id));
+    };
+    row.appendChild(b);
+  });
+}
 
 function updateCarUI() {
   document.querySelectorAll("#carList .car").forEach((d, i) => {
@@ -73,6 +90,7 @@ export function buildMenu() {
     if (state.mode === "online") goToMenuFromOnline();
     else { hide("endScr"); show("menu"); }
   };
+  buildMapPicker();
   buildLobby();
   setMode("1");
 }

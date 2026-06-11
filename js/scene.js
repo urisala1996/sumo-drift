@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RING_R0 } from './config.js';
 import { state, rng } from './state.js';
+import { MAP_BY_ID, buildMapFeatures } from './maps.js';
 
 export function initThree() {
   state.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("c"), antialias: true });
@@ -118,6 +119,25 @@ export function buildRing() {
     state.curbs.push(c);
   }
   setRing(RING_R0);
+}
+
+// Carga el mapa `mapId`: reconstruye los obstáculos y tiñe el suelo del ring.
+// Los obstáculos viven en coordenadas de mundo (no se escalan con el ring).
+export function loadMap(mapId) {
+  const map = MAP_BY_ID[mapId] || MAP_BY_ID.clasico;
+  state.curMap = map;
+  state.mapId = map.id;
+  if (state.mapGroup) {
+    state.mapGroup.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose());
+    });
+    state.scene.remove(state.mapGroup);
+  }
+  state.mapGroup = new THREE.Group();
+  buildMapFeatures(state.mapGroup, map);
+  state.scene.add(state.mapGroup);
+  if (state.platform) state.platform.material.color.setHex(map.floor ?? 0x3d3170);
 }
 
 export function setRing(r) {

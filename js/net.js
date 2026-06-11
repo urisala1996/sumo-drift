@@ -76,7 +76,7 @@ export async function createRoom(name) {
   net.roomRef = ref(db, `rooms/${code}`);
   net.metaCache = {
     host: net.clientId, status: "lobby", phase: "idle", phaseT: 0,
-    ring: 100, round: 1, banner: "", bannerColor: "", fillAI: true,
+    ring: 100, round: 1, banner: "", bannerColor: "", fillAI: true, map: state.mapId || "clasico",
     createdAt: serverTimestamp(),
   };
   net.fillAI = true;
@@ -156,6 +156,11 @@ export function setFillAI(v) {
   net.fillAI = !!v;
   net.metaCache.fillAI = !!v;
   return update(ref(net.db, `rooms/${net.code}/meta`), { fillAI: !!v });
+}
+export function setMap(id) {
+  if (!net.isHost) return;
+  net.metaCache.map = id;
+  return update(ref(net.db, `rooms/${net.code}/meta`), { map: id });
 }
 export function setStatus(s) {
   if (!net.isHost) return;

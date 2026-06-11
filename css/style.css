@@ -94,3 +94,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--sky);font-fami
 .switch.on{background:var(--mint)}
 .switch.on i{left:22px}
 .btn.on{background:linear-gradient(180deg,var(--mint),#2bb894)}
+
+/* ---------- Selector de mapa (menú + lobby) ---------- */
+.mapPickWrap{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:16px}
+.mapPickLbl{font-size:11px;letter-spacing:3px;font-weight:800;opacity:.6}
+.mapPick{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:520px}
+.mapPick button{border:2px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:var(--paper);
+  font-family:inherit;font-size:11px;font-weight:800;letter-spacing:1px;padding:8px 13px;border-radius:12px;cursor:pointer;opacity:.7;transition:border-color .12s,background .12s,transform .12s}
+.mapPick button.on{border-color:var(--sun);background:rgba(255,142,60,.16);opacity:1;transform:translateY(-2px)}
+.mapPick button:disabled{cursor:default;opacity:.4}
+.mapPick button:disabled.on{opacity:1}

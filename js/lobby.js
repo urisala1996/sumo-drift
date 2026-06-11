@@ -2,10 +2,11 @@
 // (con bloqueo de los ya cogidos), toggle de relleno con CPU y arranque (host).
 
 import { CARS } from './config.js';
+import { MAPS } from './maps.js';
 import { state } from './state.js';
 import {
   net, MAX_PLAYERS, isReady, createRoom, joinRoom, leaveRoom,
-  setReady, pickCar, setFillAI, playersList, takenCars,
+  setReady, pickCar, setFillAI, setMap, playersList, takenCars,
   subscribeMeta, subscribePlayers, subscribeInputs, subscribeState,
 } from './net.js';
 import { startMatch, applyMeta, applyNetState, goToMenuFromOnline, show, hide } from './rounds.js';
@@ -30,6 +31,7 @@ function enterRoom(asHost) {
   document.getElementById("startBtn").style.display = asHost ? "" : "none";
   document.getElementById("readyBtn").style.display = asHost ? "none" : "";
   document.getElementById("fillAIRow").style.display = asHost ? "" : "none";
+  renderMapPicker();
 
   subscribeMeta(m => { onMeta(m); applyMeta(m); });
   subscribePlayers(() => renderPlayers());
@@ -43,7 +45,29 @@ function onMeta(m) {
   net.fillAI = !!m.fillAI;
   const t = document.getElementById("fillAIToggle");
   if (t) t.classList.toggle("on", net.fillAI);
+  state.mapId = m.map || "clasico";
+  renderMapPicker();
   updateStartBtn();
+}
+
+// Selector de mapa: solo el host puede cambiarlo; los clientes ven el elegido.
+function renderMapPicker() {
+  const sel = state.mapId || "clasico";
+  document.querySelectorAll("#lobbyMaps button").forEach(b => {
+    b.classList.toggle("on", b.dataset.id === sel);
+    b.disabled = !net.isHost;
+  });
+}
+
+function buildLobbyMaps() {
+  const row = document.getElementById("lobbyMaps");
+  row.innerHTML = "";
+  MAPS.forEach(m => {
+    const b = document.createElement("button");
+    b.textContent = m.name; b.dataset.id = m.id; b.title = m.desc;
+    b.onclick = () => { if (net.isHost) setMap(m.id); };
+    row.appendChild(b);
+  });
 }
 
 function renderPlayers() {
@@ -125,6 +149,7 @@ function buildLobbyCars() {
 
 export function buildLobby() {
   buildLobbyCars();
+  buildLobbyMaps();
 
   document.getElementById("createBtn").onclick = async () => {
     try { msg("Creando sala…"); await createRoom("P1"); state.mode = "online"; enterRoom(true); }
