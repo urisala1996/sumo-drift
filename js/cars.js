@@ -110,10 +110,11 @@ export function setupFighters() {
 
 export function placeFighters() {
   const n = state.fighters.length;
+  const spawnR = (state.ringR0 || RING_R0) * .55;
   state.fighters.forEach((f, i) => {
     const a = -Math.PI / 2 + i * (Math.PI * 2 / n);
-    f.x = Math.cos(a) * RING_R0 * .55;
-    f.z = Math.sin(a) * RING_R0 * .55;
+    f.x = Math.cos(a) * spawnR;
+    f.z = Math.sin(a) * spawnR;
     f.vx = 0; f.vz = 0; f.steer = 0;
     f.heading = Math.atan2(-f.x, f.z);
     f.alive = true; f.falling = false; f.air = false; f.y = 0; f.vy = 0; f.spin = 0; f.brake = false; f.brakeT = 0;

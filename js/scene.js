@@ -194,7 +194,8 @@ export function updateCamera(dt) {
   state.camera.position.z += (tz - state.camera.position.z) * Math.min(1, dt * 3);
   state.camera.position.y = 56;
   state.camera.lookAt(state.camera.position.x - 48, 0, state.camera.position.z - 48);
-  const d = Math.max(26, Math.min(50, state.ringR * 1.35 + 8));
+  const cap = 50 * state.ringR0 / 36;   // escala el zoom según el tamaño de arena
+  const d = Math.max(26, Math.min(cap, state.ringR * 1.35 + 8));
   state.camera.top += (d - state.camera.top) * Math.min(1, dt * 2);
   state.camera.bottom = -state.camera.top;
   const aspect = innerWidth / innerHeight;

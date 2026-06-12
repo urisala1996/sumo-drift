@@ -1,15 +1,17 @@
 // Controlador de la pantalla de lobby online: crear/unirse a sala, elegir coche
 // (con bloqueo de los ya cogidos), toggle de relleno con CPU y arranque (host).
 
-import { CARS } from './config.js';
+import { CARS, RING_SIZES } from './config.js';
 import { MAPS } from './maps.js';
 import { state } from './state.js';
 import {
   net, MAX_PLAYERS, isReady, createRoom, joinRoom, leaveRoom,
-  setReady, pickCar, setFillAI, setMap, playersList, takenCars,
+  setReady, pickCar, setFillAI, setMap, setRingSize, playersList, takenCars,
   subscribeMeta, subscribePlayers, subscribeInputs, subscribeState,
 } from './net.js';
 import { startMatch, applyMeta, applyNetState, goToMenuFromOnline, show, hide } from './rounds.js';
+
+const RING_SIZE_LABELS = { small: "SMALL", medium: "MEDIUM", large: "LARGE" };
 
 function msg(t) { document.getElementById("lobbyMsg").textContent = t || ""; }
 
@@ -19,7 +21,7 @@ export function openLobby() {
   show("lobby");
   document.getElementById("lobbyConnect").style.display = "";
   document.getElementById("lobbyRoom").style.display = "none";
-  msg(isReady() ? "" : "Configura Firebase en js/firebase-config.js para jugar online.");
+  msg(isReady() ? "" : "Configure Firebase in js/firebase-config.js to play online.");
   document.getElementById("createBtn").disabled = !isReady();
   document.getElementById("joinBtn").disabled = !isReady();
 }
@@ -32,6 +34,7 @@ function enterRoom(asHost) {
   document.getElementById("readyBtn").style.display = asHost ? "none" : "";
   document.getElementById("fillAIRow").style.display = asHost ? "" : "none";
   renderMapPicker();
+  renderRingPicker();
 
   subscribeMeta(m => { onMeta(m); applyMeta(m); });
   subscribePlayers(() => renderPlayers());
@@ -46,7 +49,9 @@ function onMeta(m) {
   const t = document.getElementById("fillAIToggle");
   if (t) t.classList.toggle("on", net.fillAI);
   state.mapId = m.map || "clasico";
+  state.ringSize = m.ringSize || "small";
   renderMapPicker();
+  renderRingPicker();
   updateStartBtn();
 }
 
@@ -59,6 +64,14 @@ function renderMapPicker() {
   });
 }
 
+function renderRingPicker() {
+  const sel = state.ringSize || "small";
+  document.querySelectorAll("#lobbyRing button").forEach(b => {
+    b.classList.toggle("on", b.dataset.size === sel);
+    b.disabled = !net.isHost;
+  });
+}
+
 function buildLobbyMaps() {
   const row = document.getElementById("lobbyMaps");
   row.innerHTML = "";
@@ -66,6 +79,17 @@ function buildLobbyMaps() {
     const b = document.createElement("button");
     b.textContent = m.name; b.dataset.id = m.id; b.title = m.desc;
     b.onclick = () => { if (net.isHost) setMap(m.id); };
+    row.appendChild(b);
+  });
+}
+
+function buildLobbyRing() {
+  const row = document.getElementById("lobbyRing");
+  row.innerHTML = "";
+  Object.keys(RING_SIZES).forEach(size => {
+    const b = document.createElement("button");
+    b.textContent = RING_SIZE_LABELS[size]; b.dataset.size = size;
+    b.onclick = () => { if (net.isHost) setRingSize(size); };
     row.appendChild(b);
   });
 }
@@ -84,8 +108,8 @@ function renderPlayers() {
     row.className = "plRow";
     row.innerHTML =
       `<span class="plDot" style="background:${hex}"></span>` +
-      `<span class="plName">${p.name}${isHostP ? " 👑" : ""}${isMe ? " (tú)" : ""}</span>` +
-      `<span class="plReady ${ready ? "on" : ""}">${ready ? "LISTO" : "…"}</span>`;
+      `<span class="plName">${p.name}${isHostP ? " 👑" : ""}${isMe ? " (you)" : ""}</span>` +
+      `<span class="plReady ${ready ? "on" : ""}">${ready ? "READY" : "…"}</span>`;
     list.appendChild(row);
   });
   if (net.fillAI) {
@@ -116,7 +140,7 @@ function renderReadyBtn() {
   if (net.isHost) return;
   const me = net.players[net.clientId];
   const ready = !!(me && me.ready);
-  btn.textContent = ready ? "NO LISTO" : "LISTO";
+  btn.textContent = ready ? "NOT READY" : "READY";
   btn.classList.toggle("on", ready);
 }
 
@@ -150,16 +174,17 @@ function buildLobbyCars() {
 export function buildLobby() {
   buildLobbyCars();
   buildLobbyMaps();
+  buildLobbyRing();
 
   document.getElementById("createBtn").onclick = async () => {
-    try { msg("Creando sala…"); await createRoom("P1"); state.mode = "online"; enterRoom(true); }
-    catch (e) { msg(e.message || "Error al crear la sala."); }
+    try { msg("Creating room…"); await createRoom("P1"); state.mode = "online"; enterRoom(true); }
+    catch (e) { msg(e.message || "Couldn't create the room."); }
   };
   document.getElementById("joinBtn").onclick = async () => {
     const code = document.getElementById("joinCode").value;
-    if (!code || code.trim().length < 4) { msg("Escribe el código de 4 letras."); return; }
-    try { msg("Uniéndose…"); const r = await joinRoom(code, ""); state.mode = "online"; enterRoom(false); }
-    catch (e) { msg(e.message || "No se pudo unir."); }
+    if (!code || code.trim().length < 4) { msg("Enter the 4-letter code."); return; }
+    try { msg("Joining…"); const r = await joinRoom(code, ""); state.mode = "online"; enterRoom(false); }
+    catch (e) { msg(e.message || "Couldn't join."); }
   };
   document.getElementById("readyBtn").onclick = () => {
     const me = net.players[net.clientId];

@@ -35,19 +35,19 @@ const D = 13 / Math.SQRT2; // ≈9.19, esquinas diagonales a r≈13
 
 export const MAPS = [
   {
-    id: "clasico", name: "CLÁSICO", floor: 0x3d3170,
-    desc: "Disco liso que encoge. El de siempre.",
+    id: "clasico", name: "CLASSIC", floor: 0x3d3170,
+    desc: "Plain shrinking disc. The original.",
     pillars: [], walls: [], ramps: [], holes: [],
   },
   {
-    id: "pilares", name: "PILARES", floor: 0x3a4a72,
-    desc: "Pilar central y bumpers: rebota a tus rivales al vacío.",
+    id: "pilares", name: "PILLARS", floor: 0x3a4a72,
+    desc: "Central pillar and bumpers: ricochet rivals into the void.",
     pillars: [{ x: 0, z: 0, r: 3.0 }, ...pillarRing(12, 1.7)],
     walls: [], ramps: [], holes: [],
   },
   {
-    id: "rampas", name: "RAMPAS", floor: 0x6b4a2e,
-    desc: "Cuatro rampas en aspa: salta… o vuela fuera del ring.",
+    id: "rampas", name: "RAMPS", floor: 0x6b4a2e,
+    desc: "Four ramps in an X: jump… or fly out of the ring.",
     pillars: [], walls: [], holes: [],
     ramps: [
       rampToCenter(7.78, 7.78), rampToCenter(-7.78, 7.78),
@@ -55,8 +55,8 @@ export const MAPS = [
     ],
   },
   {
-    id: "pozos", name: "POZOS", floor: 0x2a2342,
-    desc: "Cráter central y pozos: un paso en falso y caes.",
+    id: "pozos", name: "PITS", floor: 0x2a2342,
+    desc: "Central crater and pits: one wrong move and you fall.",
     pillars: [], walls: [], ramps: [],
     holes: [
       { x: 0, z: 0, r: 4.5 },
@@ -65,8 +65,8 @@ export const MAPS = [
     ],
   },
   {
-    id: "muralla", name: "MURALLA", floor: 0x3a5145,
-    desc: "Laberinto de muros: pasillos estrechos y rebotes.",
+    id: "muralla", name: "WALLS", floor: 0x3a5145,
+    desc: "Wall maze: tight lanes and ricochets.",
     pillars: [], ramps: [], holes: [],
     walls: [
       // molinillo central
@@ -80,8 +80,8 @@ export const MAPS = [
     ],
   },
   {
-    id: "caos", name: "CAOS", floor: 0x5a2f52,
-    desc: "Un poco de todo: pilares, rampas y un pozo central.",
+    id: "caos", name: "CHAOS", floor: 0x5a2f52,
+    desc: "A bit of everything: pillars, ramps and a central pit.",
     walls: [],
     pillars: [{ x: 10, z: -5, r: 1.8 }, { x: -10, z: 5, r: 1.8 }],
     ramps: [rampToCenter(-9, -9), rampToCenter(9, 9)],

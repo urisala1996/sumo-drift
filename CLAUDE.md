@@ -1,8 +1,11 @@
 # DRIFT·SUMO
 
 Top-down car sumo battle (Three.js r128, ES modules, no build step). Static files only,
-deployed to GitHub Pages. Local 1P/2P plus host-authoritative online rooms (Firebase RTDB).
-Selectable battle maps with obstacles, ramps and pits (see [js/maps.js](js/maps.js)).
+deployed to GitHub Pages. English UI. Local 1P/2P plus host-authoritative online rooms
+(Firebase RTDB). Selectable battle maps with obstacles, ramps and pits (see
+[js/maps.js](js/maps.js)), selectable arena size (small/medium/large, `RING_SIZES` in
+[js/config.js](js/config.js)), and sudden-death (round drawn after `SUDDEN_DEATH_T`s once the
+ring hits minimum size).
 
 ## Layout
 - [index.html](index.html) — shell + import map (three, firebase) + DOM.

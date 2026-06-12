@@ -1,4 +1,4 @@
-import { RING_R0 } from './config.js';
+import { RING_R0, RING_SIZES } from './config.js';
 
 export const state = {
   scene: null,
@@ -16,6 +16,15 @@ export const state = {
   mapId: "clasico",
   mapGroup: null,
   curMap: null,
+
+  // Tamaño de arena elegido (small/medium/large) y su radio inicial resuelto.
+  ringSize: "small",
+  ringR0: RING_SIZES.small,
+  // Sudden death: tiempo con el ring al mínimo; sd = segundos restantes (-1 = off).
+  sdT: 0,
+  sd: -1,
+  // Cliente: objetivo de tamaño de ring para interpolar (evita el "tick").
+  ringTarget: null,
   players: 1,
   selP1: 0,
   selP2: 1,

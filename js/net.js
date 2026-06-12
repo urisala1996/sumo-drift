@@ -40,7 +40,7 @@ export function isReady() { return firebaseReady; }
 export function isHost() { return net.isHost; }
 
 function ensureApp() {
-  if (!firebaseReady) throw new Error("Firebase no está configurado. Edita js/firebase-config.js.");
+  if (!firebaseReady) throw new Error("Firebase is not configured. Edit js/firebase-config.js.");
   if (!net.app) {
     net.app = initializeApp(firebaseConfig);
     net.db = getDatabase(net.app);
@@ -85,8 +85,8 @@ export async function createRoom(name) {
   net.metaCache = {
     host: net.clientId, status: "lobby", phase: "idle", phaseT: 0,
     ring: 100, round: 1, matchId: 0, banner: "", bannerColor: "", fillAI: true,
-    map: state.mapId || "clasico", hostSeen: serverTimestamp(),
-    createdAt: serverTimestamp(),
+    map: state.mapId || "clasico", ringSize: state.ringSize || "small",
+    hostSeen: serverTimestamp(), createdAt: serverTimestamp(),
   };
   net.fillAI = true;
   await set(net.roomRef, {
@@ -103,17 +103,17 @@ export async function joinRoom(code, name) {
   const db = ensureApp();
   code = (code || "").toUpperCase().trim();
   const metaSnap = await get(child(ref(db), `rooms/${code}/meta`));
-  if (!metaSnap.exists()) throw new Error("La sala no existe.");
+  if (!metaSnap.exists()) throw new Error("Room not found.");
   const meta = metaSnap.val();
   // Sala fantasma: el host lleva demasiado tiempo sin dar señales -> la limpiamos.
   if (meta.hostSeen && Date.now() - meta.hostSeen > ROOM_TTL) {
     await remove(ref(db, `rooms/${code}`));
-    throw new Error("La sala ya no está activa.");
+    throw new Error("This room is no longer active.");
   }
-  if (meta.status !== "lobby") throw new Error("La partida ya ha empezado.");
+  if (meta.status !== "lobby") throw new Error("The match has already started.");
   const pSnap = await get(child(ref(db), `rooms/${code}/players`));
   const players = pSnap.val() || {};
-  if (Object.keys(players).length >= MAX_PLAYERS) throw new Error("La sala está llena.");
+  if (Object.keys(players).length >= MAX_PLAYERS) throw new Error("The room is full.");
 
   net.clientId = crypto.randomUUID();
   net.slot = freeSlot(players);
@@ -179,6 +179,11 @@ export function setMap(id) {
   if (!net.isHost) return;
   net.metaCache.map = id;
   return update(ref(net.db, `rooms/${net.code}/meta`), { map: id });
+}
+export function setRingSize(size) {
+  if (!net.isHost) return;
+  net.metaCache.ringSize = size;
+  return update(ref(net.db, `rooms/${net.code}/meta`), { ringSize: size });
 }
 export function writeMeta(partial) {
   if (!net.isHost) return;

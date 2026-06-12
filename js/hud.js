@@ -42,3 +42,14 @@ export function hideBanner() {
   state.bannerText = "";
   state.bannerColor = "";
 }
+
+// Cuenta atrás de muerte súbita (ring al mínimo): visible y clara.
+export function showCountdown(sec) {
+  const el = document.getElementById("countdown");
+  el.innerHTML = `<div class="cdLbl">SUDDEN DEATH · DRAW IN</div><div class="cdNum">${Math.max(0, sec)}</div>`;
+  el.style.opacity = 1;
+}
+
+export function hideCountdown() {
+  document.getElementById("countdown").style.opacity = 0;
+}

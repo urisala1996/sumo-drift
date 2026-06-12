@@ -185,7 +185,6 @@ export function physicsCar(f, dt, steerTarget, brake) {
   const drifting = Math.abs(vL) > 6;
   if (drifting && rng() < .7) spawnSmoke(f.x - fx * 1.8, f.z - fz * 1.8);
   if (brake && speed0 > 4 && rng() < .4) spawnSmoke(f.x - fx * 1.6, f.z - fz * 1.6, 0xbbb0d0);
-  if (!f.isAI && f.ctrl === "p1") document.getElementById("driftTag").style.opacity = drifting ? 1 : 0;
   f.brake = !!brake;
   f.brakeLights.forEach(b => b.visible = !!brake);
   f.mesh.position.set(f.x, f.y, f.z);

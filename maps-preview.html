@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>DRIFT·SUMO — Previsualización de mapas</title>
+<title>DRIFT·SUMO — Map preview</title>
 <style>
   :root{--ink:#1b1230;--paper:#f5ead7;--sun:#ff8e3c;--hot:#ff3d6e;--mint:#3ddbb4;--sky:#2a1e4f;--y:#ffd93d}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -35,16 +35,16 @@
 <body>
 <canvas id="c"></canvas>
 <div id="top">
-  <div class="title">DRIFT<b>·</b><i>SUMO</i> · PREVISUALIZACIÓN DE MAPAS</div>
+  <div class="title">DRIFT<b>·</b><i>SUMO</i> · MAP PREVIEW</div>
   <div class="tabs" id="tabs"></div>
 </div>
-<div id="hint">⟳ órbita automática</div>
+<div id="hint">⟳ auto-orbit</div>
 <div id="info"><div id="mapName"></div><div id="mapDesc"></div></div>
 <div id="legend">
-  <div class="leg"><span class="sw" style="background:#5a4d95"></span>Pilar (rebote)</div>
-  <div class="leg"><span class="sw" style="background:#4a3d85"></span>Muro (rebote)</div>
-  <div class="leg"><span class="sw" style="background:#ffd93d"></span>Rampa (salto)</div>
-  <div class="leg"><span class="sw" style="background:#0a0814;border:1px solid #ff3d6e"></span>Pozo (caes)</div>
+  <div class="leg"><span class="sw" style="background:#5a4d95"></span>Pillar (bounce)</div>
+  <div class="leg"><span class="sw" style="background:#4a3d85"></span>Wall (bounce)</div>
+  <div class="leg"><span class="sw" style="background:#ffd93d"></span>Ramp (jump)</div>
+  <div class="leg"><span class="sw" style="background:#0a0814;border:1px solid #ff3d6e"></span>Pit (you fall)</div>
 </div>
 
 <script type="module">

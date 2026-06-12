@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DRIFT·SUMO">
 <title>DRIFT·SUMO</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
 <link rel="stylesheet" href="css/style.css">
 <script type="importmap">
   {
@@ -21,18 +24,19 @@
 
 <!-- HUD -->
 <div id="hud">
-  <div id="roundLbl">RONDA 1</div>
+  <div id="roundLbl">ROUND 1</div>
   <div id="score"></div>
   <div id="ringLbl">RING 100%</div>
+  <button id="quitBtn">QUIT</button>
   <div id="banner"></div>
-  <div id="warnTag">¡AL BORDE!</div>
-  <div id="driftTag">DRIFT!</div>
-  <!-- 1 jugador -->
-  <div class="hint" id="hintL">◀ GIRAR</div>
-  <div class="hint" id="hintR">GIRAR ▶</div>
-  <div class="ctrlBtn" id="brk1">FRENO</div>
-  <div id="brkHint">o pulsa los dos lados</div>
-  <!-- 2 jugadores -->
+  <div id="countdown"></div>
+  <div id="warnTag">EDGE!</div>
+  <!-- 1 player -->
+  <div class="hint" id="hintL">◀ TURN</div>
+  <div class="hint" id="hintR">TURN ▶</div>
+  <div class="ctrlBtn" id="brk1">BRAKE</div>
+  <div id="brkHint">or press both sides</div>
+  <!-- 2 players -->
   <div class="pLbl" id="p1Lbl">P1</div>
   <div class="pLbl" id="p2Lbl">P2</div>
   <div class="ctrlBtn" id="p1L">◀</div>
@@ -41,63 +45,69 @@
   <div class="ctrlBtn" id="p2R">▶</div>
 </div>
 
-<!-- Menú -->
+<!-- Menu -->
 <div class="screen" id="menu">
   <div class="logo">DRIFT<br><b>·</b><i>SUMO</i></div>
-  <div class="tag">SACA A LOS RIVALES DEL RING · MEJOR DE 3</div>
+  <div class="tag">KNOCK RIVALS OUT OF THE RING · BEST OF 3</div>
   <div class="toggle" id="modeToggle">
-    <button data-m="1" class="on">1 JUGADOR</button>
+    <button data-m="1" class="on">1 PLAYER</button>
     <button data-m="2">LOCAL 2P</button>
     <button data-m="online">ONLINE</button>
   </div>
-  <div id="pickPrompt">Elige tu coche</div>
+  <div id="pickPrompt">Pick your car</div>
   <div class="cars" id="carList"></div>
-  <div class="mapPickWrap"><span class="mapPickLbl">MAPA</span>
+  <div class="mapPickWrap"><span class="mapPickLbl">MAP</span>
     <div class="mapPick" id="menuMaps"></div>
   </div>
-  <button class="btn" id="playBtn">¡AL RING!</button>
-  <div class="howto" id="menuHow">Aceleras solo. Toca <b>izquierda</b> o <b>derecha</b> para girar y <b>FRENO</b> para frenar. Embiste a los rivales fuera del ring… que encoge con el tiempo.</div>
+  <div class="mapPickWrap"><span class="mapPickLbl">ARENA SIZE</span>
+    <div class="mapPick" id="menuRing"></div>
+  </div>
+  <button class="btn" id="playBtn">TO THE RING!</button>
+  <div class="howto" id="menuHow">You accelerate on your own. Tap <b>left</b> or <b>right</b> to steer and <b>BRAKE</b> to slow down. Push your rivals out of the ring as it shrinks.</div>
 </div>
 
-<!-- Lobby online -->
+<!-- Online lobby -->
 <div class="screen hidden" id="lobby">
-  <div class="logo" style="font-size:min(10vw,46px)">SALA <i>ONLINE</i></div>
+  <div class="logo" style="font-size:min(10vw,46px)">ONLINE <i>ROOM</i></div>
 
-  <!-- Conexión: crear o unirse -->
+  <!-- Connection: create or join -->
   <div id="lobbyConnect" style="width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:22px">
-    <button class="btn" id="createBtn">CREAR SALA</button>
-    <div class="lobbyOr">o únete con un código</div>
-    <input id="joinCode" class="codeInput" inputmode="latin" autocomplete="off" maxlength="4" placeholder="CÓDIGO">
-    <button class="btn" id="joinBtn">UNIRSE</button>
+    <button class="btn" id="createBtn">CREATE ROOM</button>
+    <div class="lobbyOr">or join with a code</div>
+    <input id="joinCode" class="codeInput" inputmode="latin" autocomplete="off" maxlength="4" placeholder="CODE">
+    <button class="btn" id="joinBtn">JOIN</button>
     <div id="lobbyMsg" class="lobbyMsg"></div>
-    <button class="btn ghostBtn" id="lobbyBack">VOLVER</button>
+    <button class="btn ghostBtn" id="lobbyBack">BACK</button>
   </div>
 
-  <!-- Sala: jugadores, coches y arranque -->
+  <!-- Room: players, cars and start -->
   <div id="lobbyRoom" style="width:100%;max-width:520px;display:none;flex-direction:column;align-items:center;gap:10px;margin-top:16px">
-    <div class="roomCodeWrap">CÓDIGO DE SALA<div id="roomCode" class="roomCode">····</div></div>
+    <div class="roomCodeWrap">ROOM CODE<div id="roomCode" class="roomCode">····</div></div>
     <div id="playerList" class="playerList"></div>
-    <div class="pickPrompt2">Elige tu coche</div>
+    <div class="pickPrompt2">Pick your car</div>
     <div class="cars" id="lobbyCars"></div>
     <div class="fillRow" id="fillAIRow">
-      <span>RELLENAR CON CPU</span>
+      <span>FILL WITH CPU</span>
       <div class="switch on" id="fillAIToggle"><i></i></div>
     </div>
-    <div class="mapPickWrap"><span class="mapPickLbl">MAPA</span>
+    <div class="mapPickWrap"><span class="mapPickLbl">MAP</span>
       <div class="mapPick" id="lobbyMaps"></div>
     </div>
-    <button class="btn" id="readyBtn">LISTO</button>
-    <button class="btn" id="startBtn">¡EMPEZAR!</button>
-    <button class="btn ghostBtn" id="leaveBtn">SALIR</button>
+    <div class="mapPickWrap"><span class="mapPickLbl">ARENA SIZE</span>
+      <div class="mapPick" id="lobbyRing"></div>
+    </div>
+    <button class="btn" id="readyBtn">READY</button>
+    <button class="btn" id="startBtn">START!</button>
+    <button class="btn ghostBtn" id="leaveBtn">LEAVE</button>
   </div>
 </div>
 
-<!-- Fin -->
+<!-- End -->
 <div class="screen hidden" id="endScr">
-  <div class="big" id="endTitle">¡VICTORIA!</div>
+  <div class="big" id="endTitle">VICTORY!</div>
   <div class="sub" id="endSub"></div>
-  <button class="btn" id="rematchBtn">REVANCHA</button>
-  <button class="btn" id="menuBtn" style="margin-top:14px;background:rgba(255,255,255,.15);color:var(--paper);box-shadow:0 6px 0 rgba(0,0,0,.25)">GARAJE</button>
+  <button class="btn" id="rematchBtn">REMATCH</button>
+  <button class="btn" id="menuBtn" style="margin-top:14px;background:rgba(255,255,255,.15);color:var(--paper);box-shadow:0 6px 0 rgba(0,0,0,.25)">GARAGE</button>
 </div>
 
 <script type="module" src="js/main.js"></script>

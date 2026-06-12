@@ -1,11 +1,11 @@
-import { RING_R0, RING_RMIN, SHRINK_T, WINS_NEEDED } from './config.js';
+import { RING_RMIN, SHRINK_T, WINS_NEEDED, SUDDEN_DEATH_T } from './config.js';
 import { state, eff } from './state.js';
 import { initThree, setRing, updateSmoke, updateCamera } from './scene.js';
 import { setupFighters, placeFighters } from './cars.js';
 import { setupInput } from './input.js';
 import { aiSteer, aiBrake } from './ai.js';
 import { physicsCar, collisions } from './physics.js';
-import { banner, hideBanner } from './hud.js';
+import { banner, hideBanner, showCountdown, hideCountdown } from './hud.js';
 import { startRound, endRound, endMatch, goToMenuFromOnline } from './rounds.js';
 import { buildMenu } from './menu.js';
 import { net, writeFrame, writeInput, ROOM_TTL } from './net.js';
@@ -32,7 +32,9 @@ function maybeSendFrame(dt) {
   writeFrame(state.fighters, {
     phase: state.phase,
     round: state.round,
-    ring: Math.round(state.ringR / RING_R0 * 100),
+    ring: Math.round(state.ringR / state.ringR0 * 100),
+    ringSize: state.ringSize,
+    sd: state.sd,
     banner: state.bannerText || "",
     bannerColor: state.bannerColor || "",
   });
@@ -75,6 +77,11 @@ function clientFrame(dt) {
     state._lastInp = inp;
   }
   if (state.matchActive) {
+    // Interpola el tamaño del ring hacia el objetivo del host: el host envía el
+    // tamaño a ~20Hz y aquí se suaviza por frame para que no se vea el "tick".
+    if (state.ringTarget != null && Math.abs(state.ringTarget - state.ringR) > 0.001) {
+      setRing(state.ringR + (state.ringTarget - state.ringR) * Math.min(1, dt * 7));
+    }
     for (const f of state.fighters) lerpFighter(f, dt);
     let warn = false;
     for (const f of state.fighters) {
@@ -125,14 +132,16 @@ function loop(t) {
   if (state.phase === "count") {
     state.phaseT += dt;
     const n = 3 - Math.floor(state.phaseT);
-    banner(n > 0 ? String(n) : "¡YA!", "var(--sun)");
+    banner(n > 0 ? String(n) : "GO!", "var(--sun)");
     updateCamera(dt);
     if (state.phaseT >= 3.6) { hideBanner(); state.phase = "play"; }
 
   } else if (state.phase === "play") {
+    const r0 = state.ringR0;
     state.playT += dt;
-    setRing(Math.max(RING_RMIN, RING_R0 - (RING_R0 - RING_RMIN) * (state.playT / SHRINK_T)));
-    document.getElementById("ringLbl").textContent = "RING " + Math.round(state.ringR / RING_R0 * 100) + "%";
+    state.sd = -1;   // por defecto sin muerte súbita (la rama de abajo lo activa)
+    setRing(Math.max(RING_RMIN, r0 - (r0 - RING_RMIN) * (state.playT / SHRINK_T)));
+    document.getElementById("ringLbl").textContent = "RING " + Math.round(state.ringR / r0 * 100) + "%";
     for (const f of state.fighters) {
       if (!f.alive) continue;
       const { st, br } = resolveInput(f, online);
@@ -149,7 +158,16 @@ function loop(t) {
     updateCamera(dt);
     const alive = state.fighters.filter(f => f.alive && !f.falling);
     const fallingStill = state.fighters.some(f => f.falling);
-    if (alive.length <= 1 && !fallingStill) endRound(alive[0] || null);
+    if (alive.length <= 1 && !fallingStill) {
+      endRound(alive[0] || null);
+    } else if (state.ringR <= RING_RMIN + 0.01) {
+      // Muerte súbita: el ring está al mínimo, cuenta atrás hasta empate.
+      state.sdT += dt;
+      const left = Math.ceil(SUDDEN_DEATH_T - state.sdT);
+      state.sd = Math.max(0, left);
+      showCountdown(left);
+      if (state.sdT >= SUDDEN_DEATH_T) { hideCountdown(); state.sd = -1; endRound(null); }
+    }
 
   } else if (state.phase === "roundend") {
     state.phaseT += dt;

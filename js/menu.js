@@ -1,8 +1,10 @@
-import { CARS } from './config.js';
+import { CARS, RING_SIZES } from './config.js';
 import { MAPS } from './maps.js';
 import { state } from './state.js';
-import { startMatch, show, hide, goToMenuFromOnline } from './rounds.js';
+import { startMatch, show, hide, goToMenuFromOnline, quitMatch } from './rounds.js';
 import { buildLobby, openLobby } from './lobby.js';
+
+const RING_SIZE_LABELS = { small: "SMALL", medium: "MEDIUM", large: "LARGE" };
 
 function buildMapPicker() {
   const row = document.getElementById("menuMaps");
@@ -20,12 +22,27 @@ function buildMapPicker() {
   });
 }
 
+function buildRingPicker() {
+  const row = document.getElementById("menuRing");
+  row.innerHTML = "";
+  Object.keys(RING_SIZES).forEach(size => {
+    const b = document.createElement("button");
+    b.textContent = RING_SIZE_LABELS[size]; b.dataset.size = size;
+    b.classList.toggle("on", size === state.ringSize);
+    b.onclick = () => {
+      state.ringSize = size;
+      row.querySelectorAll("button").forEach(x => x.classList.toggle("on", x.dataset.size === size));
+    };
+    row.appendChild(b);
+  });
+}
+
 function updateCarUI() {
   document.querySelectorAll("#carList .car").forEach((d, i) => {
     d.classList.remove("p1", "p2");
     const badge = d.querySelector(".badge");
     if (state.players === 1) {
-      if (i === state.selP1) { d.classList.add("p1"); badge.textContent = "TÚ"; }
+      if (i === state.selP1) { d.classList.add("p1"); badge.textContent = "YOU"; }
     } else {
       if (i === state.selP1) { d.classList.add("p1"); badge.textContent = "P1"; }
       else if (i === state.selP2) { d.classList.add("p2"); badge.textContent = "P2"; }
@@ -33,10 +50,10 @@ function updateCarUI() {
   });
   const prompt = document.getElementById("pickPrompt"), play = document.getElementById("playBtn");
   if (state.players === 1) {
-    prompt.textContent = "Elige tu coche";
+    prompt.textContent = "Pick your car";
     play.disabled = false;
   } else {
-    prompt.textContent = state.selP2 === null ? "P2: elige tu coche" : "¡Listos! Cada uno con su coche";
+    prompt.textContent = state.selP2 === null ? "P2: pick your car" : "Ready! Each with their car";
     play.disabled = state.selP1 === null || state.selP2 === null;
   }
 }
@@ -64,8 +81,8 @@ function setMode(m) {
   // queda para online); selP usa índices 0..2.
   if (state.players === 2) { state.selP1 = 0; state.selP2 = 1; } else { state.selP1 = 0; }
   document.getElementById("menuHow").innerHTML = state.players === 1
-    ? 'Aceleras solo. Toca <b>izquierda</b> o <b>derecha</b> para girar y <b>FRENO</b> (o los dos lados) para frenar. Saca a los rivales del ring, que encoge con el tiempo.'
-    : 'Mejor con el móvil sobre la mesa. Cada jugador tiene <b>◀ ▶</b> en su esquina; pulsa <b>los dos a la vez</b> para frenar. ¡Saca al otro del ring!';
+    ? 'You accelerate on your own. Tap <b>left</b> or <b>right</b> to steer and <b>BRAKE</b> (or both sides) to slow down. Push your rivals out of the ring as it shrinks.'
+    : 'Best with the phone flat on the table. Each player has <b>◀ ▶</b> in their corner; press <b>both at once</b> to brake. Knock the other one out of the ring!';
   updateCarUI();
 }
 
@@ -90,7 +107,9 @@ export function buildMenu() {
     if (state.mode === "online") goToMenuFromOnline();
     else { hide("endScr"); show("menu"); }
   };
+  document.getElementById("quitBtn").onclick = quitMatch;
   buildMapPicker();
+  buildRingPicker();
   buildLobby();
   setMode("1");
 }
