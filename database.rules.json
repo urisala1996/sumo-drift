@@ -1,23 +1,16 @@
 {
   "rules": {
-    // Block everything not explicitly allowed.
     ".read": false,
     ".write": false,
 
     "rooms": {
       "$code": {
-        // Room codes are 4 uppercase letters (A-Z, no I/O — see genCode() in net.js).
         ".validate": "$code.matches(/^[A-HJ-NP-Z]{4}$/)",
+        ".write": "!data.exists() || !newData.exists()",
 
-        // ── meta ──────────────────────────────────────────────────────────────
-        // Anyone can read (clients must check status/host before joining).
-        // Anyone can write — we can't verify identity without Firebase Auth, but
-        // we lock `host` to be immutable once set, validate all field shapes, and
-        // rely on UUID obscurity for clientIds.
         "meta": {
           ".read": true,
           ".write": true,
-
           "host":        { ".validate": "newData.isString() && newData.val().length == 36 && (!data.exists() || data.val() == newData.val())" },
           "status":      { ".validate": "newData.val() == 'lobby' || newData.val() == 'playing'" },
           "phase":       { ".validate": "newData.isString() && newData.val().length <= 20" },
@@ -31,18 +24,11 @@
           "map":         { ".validate": "newData.isString() && newData.val().length <= 24" },
           "ringSize":    { ".validate": "newData.val() == 'small' || newData.val() == 'medium' || newData.val() == 'large'" },
           "sd":          { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 60" },
-          // Timestamps from the server — isNumber() covers both ServerValue.TIMESTAMP and
-          // the integer the SDK resolves it to on re-read.
           "hostSeen":    { ".validate": "newData.isNumber()" },
           "createdAt":   { ".validate": "newData.isNumber()" },
-
-          // Reject any field not listed above.
           "$other":      { ".validate": false }
         },
 
-        // ── players ───────────────────────────────────────────────────────────
-        // Keyed by UUID clientId. Only someone who generated (and knows) the UUID
-        // can write to their own slot — UUID obscurity is our access control here.
         "players": {
           ".read": true,
           "$clientId": {
@@ -58,9 +44,6 @@
           }
         },
 
-        // ── inputs ────────────────────────────────────────────────────────────
-        // Clients write their own input; host reads all inputs each frame.
-        // Keyed by clientId for the same UUID-obscurity protection.
         "inputs": {
           ".read": true,
           "$clientId": {
@@ -72,9 +55,6 @@
           }
         },
 
-        // ── state (game frame) ────────────────────────────────────────────────
-        // Host writes all car transforms ~20 Hz; clients read + interpolate.
-        // Slots 0-3 only; coordinates bounded to the largest possible arena + margin.
         "state": {
           ".read": true,
           ".write": true,
@@ -93,7 +73,6 @@
           }
         },
 
-        // Block any top-level key inside a room other than the four above.
         "$other": { ".validate": false }
       }
     }
