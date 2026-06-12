@@ -6,9 +6,9 @@ import { setupInput } from './input.js';
 import { aiSteer, aiBrake } from './ai.js';
 import { physicsCar, collisions } from './physics.js';
 import { banner, hideBanner } from './hud.js';
-import { startRound, endRound, endMatch } from './rounds.js';
+import { startRound, endRound, endMatch, goToMenuFromOnline } from './rounds.js';
 import { buildMenu } from './menu.js';
-import { net, writeFrame, writeInput } from './net.js';
+import { net, writeFrame, writeInput, ROOM_TTL } from './net.js';
 
 const SEND_HZ = 20;
 
@@ -102,6 +102,11 @@ function loop(t) {
 
   // ----- Cliente online: solo renderiza el estado autoritativo del host -----
   if (online && !net.isHost) {
+    // Si el host lleva demasiado tiempo sin latir, dio la sala por perdida.
+    if (state.hostSeenAt && Date.now() - state.hostSeenAt > ROOM_TTL) {
+      goToMenuFromOnline("El host abandonó la sala.");
+      return;
+    }
     clientFrame(dt);
     state.renderer.render(state.scene, state.camera);
     return;

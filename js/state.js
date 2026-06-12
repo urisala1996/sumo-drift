@@ -29,6 +29,15 @@ export const state = {
   // Acumulador para limitar la frecuencia de escritura del host (~20Hz)
   netSendAcc: 0,
   round: 1,
+  // Partida online: matchActive marca si hay combate en curso; matchId es un
+  // contador que el host incrementa en cada arranque para que los clientes
+  // reconstruyan de forma determinista (incluida la revancha).
+  matchActive: false,
+  matchId: 0,
+  lastMatchId: 0,
+  // Cliente: instante del último latido recibido del host (para detectar si el
+  // host abandonó la sala de forma permanente, no un corte breve).
+  hostSeenAt: 0,
   phase: "idle",
   phaseT: 0,
   playT: 0,

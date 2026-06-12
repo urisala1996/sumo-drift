@@ -18,6 +18,14 @@ import { state } from './state.js';
 
 export const MAX_PLAYERS = 4;
 
+// Presencia con gracia: en vez de borrar la sala/jugador al primer corte de
+// conexión (p.ej. minimizar el navegador en móvil para pegar el código), se
+// refresca un "latido" periódico y solo se limpia lo que lleva inactivo un rato.
+const HEARTBEAT_MS = 8000;   // frecuencia del latido de presencia
+const PLAYER_TTL = 30000;    // gracia antes de echar a un jugador inactivo
+export const ROOM_TTL = 60000; // gracia antes de dar una sala/host por muertos
+let hbTimer = null, connUnsub = null;
+
 // Espejo local del estado de red (state.net apunta a este objeto).
 export const net = state.net;
 net.app = null;
@@ -76,16 +84,18 @@ export async function createRoom(name) {
   net.roomRef = ref(db, `rooms/${code}`);
   net.metaCache = {
     host: net.clientId, status: "lobby", phase: "idle", phaseT: 0,
-    ring: 100, round: 1, banner: "", bannerColor: "", fillAI: true, map: state.mapId || "clasico",
+    ring: 100, round: 1, matchId: 0, banner: "", bannerColor: "", fillAI: true,
+    map: state.mapId || "clasico", hostSeen: serverTimestamp(),
     createdAt: serverTimestamp(),
   };
   net.fillAI = true;
   await set(net.roomRef, {
     meta: net.metaCache,
-    players: { [net.clientId]: { name: name || "P1", slot: 0, car: 0, ready: false } },
+    players: { [net.clientId]: { name: name || "P1", slot: 0, car: 0, ready: false, seen: serverTimestamp() } },
   });
-  // Si el host cae, se cierra la sala entera.
-  onDisconnect(net.roomRef).remove();
+  // NOTA: ya NO se borra la sala al desconectar; ver startPresence() — un corte
+  // breve de conexión no debe tumbar la sala. La limpieza es diferida por TTL.
+  startPresence();
   return { code, clientId: net.clientId };
 }
 
@@ -94,7 +104,13 @@ export async function joinRoom(code, name) {
   code = (code || "").toUpperCase().trim();
   const metaSnap = await get(child(ref(db), `rooms/${code}/meta`));
   if (!metaSnap.exists()) throw new Error("La sala no existe.");
-  if (metaSnap.val().status !== "lobby") throw new Error("La partida ya ha empezado.");
+  const meta = metaSnap.val();
+  // Sala fantasma: el host lleva demasiado tiempo sin dar señales -> la limpiamos.
+  if (meta.hostSeen && Date.now() - meta.hostSeen > ROOM_TTL) {
+    await remove(ref(db, `rooms/${code}`));
+    throw new Error("La sala ya no está activa.");
+  }
+  if (meta.status !== "lobby") throw new Error("La partida ya ha empezado.");
   const pSnap = await get(child(ref(db), `rooms/${code}/players`));
   const players = pSnap.val() || {};
   if (Object.keys(players).length >= MAX_PLAYERS) throw new Error("La sala está llena.");
@@ -104,11 +120,13 @@ export async function joinRoom(code, name) {
   net.isHost = false;
   net.code = code;
   net.roomRef = ref(db, `rooms/${code}`);
-  const playerRef = ref(db, `rooms/${code}/players/${net.clientId}`);
-  await set(playerRef, { name: name || `P${net.slot + 1}`, slot: net.slot, car: freeCar(players), ready: false });
-  // Un cliente al desconectarse solo se quita a sí mismo.
-  onDisconnect(playerRef).remove();
+  await set(ref(db, `rooms/${code}/players/${net.clientId}`), {
+    name: name || `P${net.slot + 1}`, slot: net.slot, car: freeCar(players), ready: false, seen: serverTimestamp(),
+  });
+  // El input sí se borra al desconectar (no debe quedar input fantasma); la
+  // entrada de jugador se mantiene con gracia (ver startPresence()).
   onDisconnect(ref(db, `rooms/${code}/inputs/${net.clientId}`)).remove();
+  startPresence();
   return { code, clientId: net.clientId, slot: net.slot };
 }
 
@@ -162,11 +180,6 @@ export function setMap(id) {
   net.metaCache.map = id;
   return update(ref(net.db, `rooms/${net.code}/meta`), { map: id });
 }
-export function setStatus(s) {
-  if (!net.isHost) return;
-  net.metaCache.status = s;
-  return update(ref(net.db, `rooms/${net.code}/meta`), { status: s });
-}
 export function writeMeta(partial) {
   if (!net.isHost) return;
   Object.assign(net.metaCache, partial);
@@ -199,12 +212,57 @@ export function takenCars(exceptClientId = null) {
   return s;
 }
 
+// ---------- Presencia (latido + reconexión + siega diferida) ----------
+function presenceRefresh() {
+  if (!net.code || !net.db) return;
+  if (net.isHost) {
+    net.metaCache.hostSeen = serverTimestamp();
+    update(ref(net.db, `rooms/${net.code}/meta`), { hostSeen: serverTimestamp() });
+    reapStalePlayers();
+  } else {
+    update(ref(net.db, `rooms/${net.code}/players/${net.clientId}`), { seen: serverTimestamp(), online: true });
+  }
+}
+
+// El host echa a los jugadores que llevan demasiado tiempo sin latir (les da
+// margen para volver tras un corte breve antes de convertirlos en hueco/CPU).
+function reapStalePlayers() {
+  if (!net.isHost || !net.code) return;
+  const now = Date.now();
+  for (const [cid, p] of Object.entries(net.players)) {
+    if (cid === net.clientId) continue;
+    if (p.seen && now - p.seen > PLAYER_TTL) remove(ref(net.db, `rooms/${net.code}/players/${cid}`));
+  }
+}
+
+function startPresence() {
+  stopPresence();
+  presenceRefresh();
+  hbTimer = setInterval(presenceRefresh, HEARTBEAT_MS);
+  // Reafirma la presencia al (re)conectar; un cliente además marca su entrada
+  // como offline (sin borrarla) al caer, para que la siega tenga su margen.
+  connUnsub = onValue(ref(net.db, ".info/connected"), snap => {
+    if (snap.val() !== true || !net.code) return;
+    if (!net.isHost) {
+      const pr = ref(net.db, `rooms/${net.code}/players/${net.clientId}`);
+      onDisconnect(pr).update({ online: false });
+    }
+    presenceRefresh();
+  });
+}
+
+function stopPresence() {
+  if (hbTimer) { clearInterval(hbTimer); hbTimer = null; }
+  if (connUnsub) { try { connUnsub(); } catch (e) {} connUnsub = null; }
+}
+
 export function leaveRoom() {
+  stopPresence();
   for (const u of net.unsubs) { try { u(); } catch (e) {} }
   net.unsubs = [];
   if (net.code && net.db) {
     try {
-      if (net.isHost) { onDisconnect(net.roomRef).cancel(); remove(net.roomRef); }
+      if (net.isHost) { remove(net.roomRef); }
       else {
         const pr = ref(net.db, `rooms/${net.code}/players/${net.clientId}`);
         onDisconnect(pr).cancel(); remove(pr);

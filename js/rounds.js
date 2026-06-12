@@ -4,7 +4,7 @@ import { setRing, loadMap } from './scene.js';
 import { setupFighters, placeFighters } from './cars.js';
 import { refreshScoreUI, banner } from './hud.js';
 import { showControls } from './input.js';
-import { net, setStatus, writeMeta, leaveRoom } from './net.js';
+import { net, writeMeta, leaveRoom } from './net.js';
 
 export function show(id) { document.getElementById(id).classList.remove("hidden"); }
 export function hide(id) { document.getElementById(id).classList.add("hidden"); }
@@ -16,7 +16,17 @@ export function startMatch() {
   loadMap(state.mapId);
   showControls();
   state.round = 1;
-  if (state.mode === "online") { writeMeta({ map: state.mapId }); setStatus("playing"); }
+  if (state.mode === "online") {
+    // Nuevo matchId en cada arranque (incluida la revancha): los clientes lo
+    // detectan y reconstruyen la partida de cero, sin depender de matchActive.
+    // Una sola escritura atómica evita estados intermedios.
+    state.matchId = (net.meta.matchId || 0) + 1;
+    writeMeta({
+      map: state.mapId, matchId: state.matchId, status: "playing",
+      round: 1, banner: "", bannerColor: "",
+      endWinnerSlot: null, endWinnerTag: null, endWinnerAI: 0, sub: "",
+    });
+  }
   startRound();
   hide("menu"); hide("endScr"); hide("lobby");
   document.getElementById("hud").style.display = "block";
@@ -109,8 +119,14 @@ function renderEnd(winnerSlot, winnerTag, winnerAI, sub) {
 export function applyMeta(meta) {
   if (net.isHost) return;
   if (!meta) { goToMenuFromOnline("La sala se ha cerrado."); return; }
+  // Cualquier meta recibida implica que el host sigue vivo.
+  state.hostSeenAt = Date.now();
 
-  if (meta.status === "playing" && !state.matchActive) clientStartMatch();
+  // Arranca (o re-arranca en revancha) cuando cambia el matchId con status playing.
+  if (meta.status === "playing" && typeof meta.matchId === "number" && meta.matchId !== state.lastMatchId) {
+    state.lastMatchId = meta.matchId;
+    clientStartMatch();
+  }
   if (meta.status === "ended" && state.matchActive) {
     renderEnd(meta.endWinnerSlot, meta.endWinnerTag, !!meta.endWinnerAI, meta.sub || "");
     state.matchActive = false;
@@ -152,6 +168,9 @@ export function goToMenuFromOnline(msg) {
   leaveRoom();
   state.mode = "local";
   state.matchActive = false;
+  state.matchId = 0;
+  state.lastMatchId = 0;
+  state.hostSeenAt = 0;
   state.phase = "idle";
   document.getElementById("hud").style.display = "none";
   hide("endScr"); hide("lobby"); show("menu");
