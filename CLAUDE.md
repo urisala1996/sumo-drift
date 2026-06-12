@@ -62,10 +62,18 @@ Auth in the future would make the host-write check airtight.
       at startup via `isSupported()` guard; reuses the net.js app instance
       (`getApps()`/`getApp()`). `firebase/analytics` added to the import map. Best-effort:
       wrapped so any failure is silent.
-- [ ] **Sound effects** — 3–4 sounds (collision thud, fall whoosh, win jingle) via Web Audio
-      API (generated or small `.ogg` files, no large assets needed)
-- [ ] **4th player online** — `MAX_PLAYERS=4` slots and `SLOT_COLORS` are already wired;
-      just needs the lobby UI and local testing
+- [x] **Sound effects** — [js/audio.js](js/audio.js): fully synthesized Web Audio (no assets).
+      Thud (car-car + obstacle bumps), fall whoosh, ramp jump, countdown beeps, round ding,
+      match win/lose fanfare. Host/local trigger at the physics event sites
+      ([js/physics.js](js/physics.js), [js/rounds.js](js/rounds.js), [js/main.js](js/main.js));
+      online clients re-derive them from net state (fall/jump in `applyNetState`, countdown/round
+      via banner in `applyMeta`, car impacts via a proximity detector in `clientFrame`) since
+      clients run no physics. Mute toggle (`#muteBtn`, persisted in localStorage); context is
+      lazily created and resumed on first gesture per autoplay policy.
+- [x] **4th player online** — already fully wired: `MAX_PLAYERS=4` flows through `freeSlot`,
+      the room-full check, `onlineRoster` CPU-fill and the lobby; 4 cars/`SLOT_COLORS` cover 4
+      slots. HUD score row made responsive for 4 entries. **Needs a live 4-device/4-tab test**
+      (can't be verified locally without 4 clients).
 - [ ] **Custom domain** — point DNS to GitHub Pages in repo Settings → Pages
 
 ## TODO / Known issues

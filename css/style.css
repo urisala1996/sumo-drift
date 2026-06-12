@@ -6,7 +6,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--sky);font-fami
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;pointer-events:none;display:none}
 #roundLbl{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;transform:translateX(-50%);font-size:15px;font-weight:800;letter-spacing:3px;opacity:.85}
-#score{position:absolute;top:calc(env(safe-area-inset-top,0px) + 36px);left:50%;transform:translateX(-50%);display:flex;gap:16px}
+#score{position:absolute;top:calc(env(safe-area-inset-top,0px) + 36px);left:50%;transform:translateX(-50%);display:flex;gap:min(16px,3.2vw);max-width:96vw}
 .scoreCar{display:flex;flex-direction:column;align-items:center;gap:3px}
 .scoreTop{display:flex;align-items:center;gap:5px}
 .scoreDot{width:13px;height:13px;border-radius:4px}
@@ -14,7 +14,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--sky);font-fami
 .pips{display:flex;gap:3px}
 .pip{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18)}
 .pip.on{background:var(--paper)}
-#ringLbl{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:14px;font-size:12px;font-weight:700;letter-spacing:1px;opacity:.8;text-align:right;font-variant-numeric:tabular-nums}
+#ringLbl{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:62px;font-size:12px;font-weight:700;letter-spacing:1px;opacity:.8;text-align:right;font-variant-numeric:tabular-nums}
+/* Sound toggle — fixed above all screens/HUD so it's always reachable */
+#muteBtn{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:50;
+  width:40px;height:40px;border-radius:12px;border:2px solid rgba(245,234,215,.25);
+  background:rgba(0,0,0,.35);color:var(--paper);font-size:18px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;pointer-events:auto}
+#muteBtn:active{transform:translateY(1px)}
 #banner{position:absolute;top:34%;left:50%;transform:translateX(-50%) rotate(-4deg);font-size:min(11vw,52px);font-weight:900;font-style:italic;letter-spacing:1px;text-align:center;text-shadow:0 4px 0 rgba(0,0,0,.4);opacity:0;transition:opacity .2s;white-space:nowrap}
 #warnTag{position:absolute;top:48%;left:50%;transform:translateX(-50%);font-size:16px;font-weight:900;letter-spacing:3px;color:var(--hot);text-shadow:0 2px 0 rgba(0,0,0,.4);opacity:0;transition:opacity .15s}
 #countdown{position:absolute;top:15%;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}

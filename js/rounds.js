@@ -5,6 +5,7 @@ import { setupFighters, placeFighters } from './cars.js';
 import { refreshScoreUI, banner, hideBanner, showCountdown, hideCountdown } from './hud.js';
 import { showControls } from './input.js';
 import { net, writeMeta, leaveRoom } from './net.js';
+import * as sfx from './audio.js';
 
 function ringRadius(size) { return RING_SIZES[size] || RING_SIZES.small; }
 
@@ -45,6 +46,7 @@ export function startRound() {
   hideCountdown();
   state.phase = "count";
   state.phaseT = 0;
+  state._lastCountN = 99;   // so the first countdown tick (3) plays
   document.getElementById("roundLbl").textContent = "ROUND " + state.round;
 }
 
@@ -66,6 +68,8 @@ export function endRound(winner) {
   } else {
     banner("DRAW!");
   }
+  // Round-over cue (host + local; online clients get it via applyMeta banner).
+  sfx.point();
 }
 
 export function endMatch(winner) {
@@ -79,13 +83,15 @@ export function endMatch(winner) {
       endWinnerSlot: winner.slot, endWinnerTag: winner.tag, endWinnerAI: winner.isAI ? 1 : 0, sub,
     });
     renderEnd(winner.slot, winner.tag, winner.isAI, sub);
+    sfx[!winner.isAI && winner.slot === net.slot ? "win" : "lose"]();
     state.matchActive = false;
     return;
   }
 
   const t = document.getElementById("endTitle");
   const human = winner.ctrl !== "ai";
-  if (human && (state.players === 1 || winner.ctrl === "p1" || winner.ctrl === "p2")) {
+  const youWon = human && (state.players === 1 || winner.ctrl === "p1" || winner.ctrl === "p2");
+  if (youWon) {
     if (state.players === 1) { t.textContent = "VICTORY!"; t.className = "big win"; }
     else { t.textContent = winner.tag + " WINS!"; t.className = "big win"; }
   } else {
@@ -95,6 +101,7 @@ export function endMatch(winner) {
   document.getElementById("endSub").textContent = state.fighters.map(f => f.tag + " " + f.wins).join(" · ");
   document.getElementById("rematchBtn").style.display = "";
   show("endScr");
+  sfx[youWon ? "win" : "lose"]();
 }
 
 // Sale de la partida a mitad (botón QUIT del HUD).
@@ -113,6 +120,7 @@ export function quitMatch() {
 // Construye la vista de partida en un cliente (sin lógica de fases: las
 // posiciones llegan sincronizadas desde el host).
 export function clientStartMatch() {
+  state._lastBanner = "";   // reset so countdown/round cues fire cleanly
   state.ringSize = net.meta.ringSize || "small";
   state.ringR0 = ringRadius(state.ringSize);
   state.ringTarget = state.ringR0;
@@ -152,6 +160,7 @@ export function applyMeta(meta) {
   }
   if (meta.status === "ended" && state.matchActive) {
     renderEnd(meta.endWinnerSlot, meta.endWinnerTag, !!meta.endWinnerAI, meta.sub || "");
+    sfx[!meta.endWinnerAI && meta.endWinnerSlot === net.slot ? "win" : "lose"]();
     state.matchActive = false;
   }
 
@@ -172,6 +181,14 @@ export function applyMeta(meta) {
     } else {
       b.style.opacity = 0;
     }
+    // Derive countdown/round cues from banner changes (client runs no physics).
+    const bn = meta.banner || "";
+    if (bn !== state._lastBanner) {
+      if (bn === "3" || bn === "2" || bn === "1") sfx.beep(false);
+      else if (bn === "GO!") sfx.beep(true);
+      else if (/ROUND|DRAW/.test(bn)) sfx.point();
+      state._lastBanner = bn;
+    }
   }
 }
 
@@ -183,6 +200,10 @@ export function applyNetState(snap) {
   for (const f of state.fighters) {
     const s = snap[f.slot];
     if (!s) continue;
+    // Sound cues from state transitions (no physics runs on the client).
+    if (!f.falling && s.falling) sfx.whoosh();
+    if (s.y > 0.6 && !(f._cy > 0.6) && !s.falling) sfx.jump();
+    f._cy = s.y;
     f.tx = s.x; f.tz = s.z; f.ty = s.y;
     f.theading = s.heading; f.tsteer = s.steer;
     f.alive = !!s.alive; f.falling = !!s.falling; f.brake = !!s.brake;

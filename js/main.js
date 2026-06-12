@@ -1,4 +1,4 @@
-import { RING_RMIN, SHRINK_T, WINS_NEEDED, SUDDEN_DEATH_T } from './config.js';
+import { RING_RMIN, SHRINK_T, WINS_NEEDED, SUDDEN_DEATH_T, CAR_R } from './config.js';
 import { state, eff } from './state.js';
 import { initThree, setRing, updateSmoke, updateCamera } from './scene.js';
 import { setupFighters, placeFighters } from './cars.js';
@@ -10,6 +10,7 @@ import { startRound, endRound, endMatch, goToMenuFromOnline } from './rounds.js'
 import { buildMenu } from './menu.js';
 import { net, writeFrame, writeInput, ROOM_TTL } from './net.js';
 import { initAnalytics } from './analytics.js';
+import * as sfx from './audio.js';
 
 const SEND_HZ = 20;
 
@@ -68,6 +69,24 @@ function lerpFighter(f, dt) {
   f.brakeLights.forEach(b => b.visible = !!f.brake);
 }
 
+// Cliente: detecta impactos coche-coche por proximidad de las posiciones ya
+// interpoladas (el cliente no corre física, así que no tiene el impulso real).
+// Histéresis por par para no disparar el "thud" en ráfaga.
+const clientClose = {};
+function clientCollisionSfx() {
+  const F = state.fighters;
+  for (let i = 0; i < F.length; i++) {
+    for (let j = i + 1; j < F.length; j++) {
+      const a = F[i], b = F[j];
+      const key = i + "_" + j;
+      if (!a.alive || !b.alive || a.falling || b.falling) { clientClose[key] = false; continue; }
+      const d = Math.hypot(b.x - a.x, b.z - a.z);
+      if (d < CAR_R * 2 && !clientClose[key]) { sfx.thud(0.5); clientClose[key] = true; }
+      else if (d > CAR_R * 2 + 1.5) clientClose[key] = false;
+    }
+  }
+}
+
 // Cliente online: enviar mi input y renderizar el estado del host.
 function clientFrame(dt) {
   const e = eff("p1");
@@ -84,6 +103,7 @@ function clientFrame(dt) {
       setRing(state.ringR + (state.ringTarget - state.ringR) * Math.min(1, dt * 7));
     }
     for (const f of state.fighters) lerpFighter(f, dt);
+    clientCollisionSfx();
     let warn = false;
     for (const f of state.fighters) {
       if (f.slot === net.slot && f.alive && !f.falling && Math.hypot(f.x, f.z) > state.ringR - 5) warn = true;
@@ -134,6 +154,7 @@ function loop(t) {
     state.phaseT += dt;
     const n = 3 - Math.floor(state.phaseT);
     banner(n > 0 ? String(n) : "GO!", "var(--sun)");
+    if (n !== state._lastCountN) { sfx.beep(n <= 0); state._lastCountN = n; }
     updateCamera(dt);
     if (state.phaseT >= 3.6) { hideBanner(); state.phase = "play"; }
 

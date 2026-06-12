@@ -4,7 +4,7 @@
 // Firebase realtime/analytics traffic (see the host guard in fetch).
 //
 // Bump CACHE when shipping new assets so old caches are purged on activate.
-const CACHE = "driftsumo-v1";
+const CACHE = "driftsumo-v2";
 
 const SHELL = [
   "./", "./index.html", "./css/style.css",
@@ -12,7 +12,8 @@ const SHELL = [
   "./js/main.js", "./js/physics.js", "./js/cars.js", "./js/ai.js",
   "./js/scene.js", "./js/maps.js", "./js/rounds.js", "./js/hud.js",
   "./js/input.js", "./js/menu.js", "./js/lobby.js", "./js/net.js",
-  "./js/config.js", "./js/state.js", "./js/firebase-config.js", "./js/analytics.js",
+  "./js/config.js", "./js/state.js", "./js/firebase-config.js",
+  "./js/analytics.js", "./js/audio.js",
 ];
 
 self.addEventListener("install", e => {

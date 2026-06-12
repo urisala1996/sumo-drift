@@ -2,6 +2,7 @@ import { CAR_R } from './config.js';
 import { RAMP_LEN, RAMP_RISE, RAMP_WIDTH } from './maps.js';
 import { state, rng } from './state.js';
 import { spawnSmoke } from './scene.js';
+import * as sfx from './audio.js';
 
 const GRAV = 42;          // gravedad de los saltos (rampa)
 const RAMP_HALF_L = RAMP_LEN / 2, RAMP_HALF_W = RAMP_WIDTH / 2;
@@ -36,6 +37,7 @@ export function resolveObstacles(f, map) {
       if (vn < 0) {
         const e = .35; f.vx -= (1 + e) * vn * nx; f.vz -= (1 + e) * vn * nz;
         spawnSmoke(f.x - nx * CAR_R, f.z - nz * CAR_R, 0xffd9a0);
+        sfx.thud(Math.min(1, -vn / 25));
       }
     }
   }
@@ -55,6 +57,7 @@ export function resolveObstacles(f, map) {
       if (vn < 0) {
         const e = .3; f.vx -= (1 + e) * vn * nx; f.vz -= (1 + e) * vn * nz;
         spawnSmoke(f.x - nx * CAR_R, f.z - nz * CAR_R, 0xffd9a0);
+        sfx.thud(Math.min(1, -vn / 25));
       }
     }
   }
@@ -101,6 +104,7 @@ export function resolveObstacles(f, map) {
 function fallCheck(f, map) {
   if ((map && overHole(f, map)) || Math.hypot(f.x, f.z) > state.ringR + CAR_R * .4) {
     f.falling = true; f.air = false; f.vy = 2;
+    sfx.whoosh();
   }
 }
 
@@ -177,6 +181,7 @@ export function physicsCar(f, dt, steerTarget, brake) {
     if (r && (f.vx * r.dx + f.vz * r.dz) > 3) {
       f.air = true; f.vy = r.launch;
       f.vx += r.dx * 6; f.vz += r.dz * 6;
+      sfx.jump();
     }
   }
 
@@ -211,6 +216,7 @@ export function collisions() {
         b.vx += jimp * nx / mb; b.vz += jimp * nz / mb;
         const cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2;
         for (let k = 0; k < 4; k++) spawnSmoke(cx, cz, 0xffd9a0);
+        sfx.thud(Math.min(1, jimp / 30));
       }
     }
   }

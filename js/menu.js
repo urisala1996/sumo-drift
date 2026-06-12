@@ -3,6 +3,7 @@ import { MAPS } from './maps.js';
 import { state } from './state.js';
 import { startMatch, show, hide, goToMenuFromOnline, quitMatch } from './rounds.js';
 import { buildLobby, openLobby } from './lobby.js';
+import { isMuted, toggleMuted } from './audio.js';
 
 const RING_SIZE_LABELS = { small: "SMALL", medium: "MEDIUM", large: "LARGE" };
 
@@ -108,6 +109,10 @@ export function buildMenu() {
     else { hide("endScr"); show("menu"); }
   };
   document.getElementById("quitBtn").onclick = quitMatch;
+  const mute = document.getElementById("muteBtn");
+  const syncMute = () => { mute.textContent = isMuted() ? "🔇" : "🔊"; };
+  syncMute();
+  mute.onclick = () => { toggleMuted(); syncMute(); };
   buildMapPicker();
   buildRingPicker();
   buildLobby();
