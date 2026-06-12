@@ -1,0 +1,101 @@
+{
+  "rules": {
+    // Block everything not explicitly allowed.
+    ".read": false,
+    ".write": false,
+
+    "rooms": {
+      "$code": {
+        // Room codes are 4 uppercase letters (A-Z, no I/O — see genCode() in net.js).
+        ".validate": "$code.matches(/^[A-HJ-NP-Z]{4}$/)",
+
+        // ── meta ──────────────────────────────────────────────────────────────
+        // Anyone can read (clients must check status/host before joining).
+        // Anyone can write — we can't verify identity without Firebase Auth, but
+        // we lock `host` to be immutable once set, validate all field shapes, and
+        // rely on UUID obscurity for clientIds.
+        "meta": {
+          ".read": true,
+          ".write": true,
+
+          "host":        { ".validate": "newData.isString() && newData.val().length == 36 && (!data.exists() || data.val() == newData.val())" },
+          "status":      { ".validate": "newData.val() == 'lobby' || newData.val() == 'playing'" },
+          "phase":       { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "phaseT":      { ".validate": "newData.isNumber()" },
+          "ring":        { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+          "round":       { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 20" },
+          "matchId":     { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "banner":      { ".validate": "newData.isString() && newData.val().length <= 60" },
+          "bannerColor": { ".validate": "newData.isString() && newData.val().length <= 12" },
+          "fillAI":      { ".validate": "newData.isBoolean()" },
+          "map":         { ".validate": "newData.isString() && newData.val().length <= 24" },
+          "ringSize":    { ".validate": "newData.val() == 'small' || newData.val() == 'medium' || newData.val() == 'large'" },
+          "sd":          { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 60" },
+          // Timestamps from the server — isNumber() covers both ServerValue.TIMESTAMP and
+          // the integer the SDK resolves it to on re-read.
+          "hostSeen":    { ".validate": "newData.isNumber()" },
+          "createdAt":   { ".validate": "newData.isNumber()" },
+
+          // Reject any field not listed above.
+          "$other":      { ".validate": false }
+        },
+
+        // ── players ───────────────────────────────────────────────────────────
+        // Keyed by UUID clientId. Only someone who generated (and knows) the UUID
+        // can write to their own slot — UUID obscurity is our access control here.
+        "players": {
+          ".read": true,
+          "$clientId": {
+            ".write": true,
+            ".validate": "newData.hasChildren(['name','slot','car','ready'])",
+            "name":   { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20" },
+            "slot":   { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+            "car":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+            "ready":  { ".validate": "newData.isBoolean()" },
+            "seen":   { ".validate": "newData.isNumber()" },
+            "online": { ".validate": "newData.isBoolean()" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        // ── inputs ────────────────────────────────────────────────────────────
+        // Clients write their own input; host reads all inputs each frame.
+        // Keyed by clientId for the same UUID-obscurity protection.
+        "inputs": {
+          ".read": true,
+          "$clientId": {
+            ".write": true,
+            "l": { ".validate": "newData.val() == 0 || newData.val() == 1" },
+            "r": { ".validate": "newData.val() == 0 || newData.val() == 1" },
+            "b": { ".validate": "newData.val() == 0 || newData.val() == 1" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        // ── state (game frame) ────────────────────────────────────────────────
+        // Host writes all car transforms ~20 Hz; clients read + interpolate.
+        // Slots 0-3 only; coordinates bounded to the largest possible arena + margin.
+        "state": {
+          ".read": true,
+          ".write": true,
+          "$slot": {
+            ".validate": "$slot.matches(/^[0-3]$/)",
+            "x":       { ".validate": "newData.isNumber() && newData.val() >= -150 && newData.val() <= 150" },
+            "z":       { ".validate": "newData.isNumber() && newData.val() >= -150 && newData.val() <= 150" },
+            "y":       { ".validate": "newData.isNumber() && newData.val() >= -60  && newData.val() <= 60"  },
+            "heading": { ".validate": "newData.isNumber()" },
+            "steer":   { ".validate": "newData.isNumber() && newData.val() >= -1.6 && newData.val() <= 1.6" },
+            "alive":   { ".validate": "newData.val() == 0 || newData.val() == 1" },
+            "falling": { ".validate": "newData.val() == 0 || newData.val() == 1" },
+            "brake":   { ".validate": "newData.val() == 0 || newData.val() == 1" },
+            "wins":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20" },
+            "$other":  { ".validate": false }
+          }
+        },
+
+        // Block any top-level key inside a room other than the four above.
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}
