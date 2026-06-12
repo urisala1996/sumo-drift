@@ -44,18 +44,28 @@ Auth in the future would make the host-write check airtight.
 
 ### Production checklist
 - [x] **Firebase rules** — [database.rules.json](database.rules.json) deployed to RTDB
-- [ ] **Firebase Usage Alerts** — set up in the Firebase console (Spark free tier:
-      10 GB/month bandwidth, 100 concurrent connections); alert at 80% to avoid surprises
-- [ ] **Open Graph tags** — add `og:title`, `og:description`, `og:image`, `og:url` to
-      `<head>` in [index.html](index.html) so link previews look good on Discord/iMessage
-- [ ] **PWA manifest** — `manifest.json` + 20-line service worker for home-screen install
-      and instant repeat loads (the shell only; online still needs connectivity)
+- [ ] **Firebase Usage Alerts** — *manual, console-only (~2 min):* Firebase console →
+      ⚙ Project settings → **Usage and billing** → **Details & settings** → set a budget
+      alert (or, on Blaze, Google Cloud → Billing → Budgets & alerts → 80% threshold).
+      Spark free tier caps: 10 GB/month bandwidth, 1 GB storage, 100 concurrent connections.
+- [x] **Open Graph tags** — `og:*` + `twitter:*` meta in [index.html](index.html);
+      share image is [og-image.png](og-image.png) (1200×630, rasterized from
+      [og-image.svg](og-image.svg)). **Absolute URLs hardcode the github.io Pages URL —
+      update them if you move to a custom domain.**
+- [x] **PWA manifest** — [manifest.json](manifest.json) + [sw.js](sw.js) service worker.
+      Caches the static shell (cache-first) + CDN libs (stale-while-revalidate); never
+      intercepts Firebase RTDB/analytics traffic. Registered in [js/main.js](js/main.js).
+      **Bump `CACHE` in sw.js when shipping new assets** or clients keep the old cache.
+      Note: icons are the SVG favicon; older browsers that require 192/512 PNG icons for
+      install may not prompt — add PNGs later if needed.
+- [x] **Analytics** — [js/analytics.js](js/analytics.js) inits Firebase Analytics (GA4)
+      at startup via `isSupported()` guard; reuses the net.js app instance
+      (`getApps()`/`getApp()`). `firebase/analytics` added to the import map. Best-effort:
+      wrapped so any failure is silent.
 - [ ] **Sound effects** — 3–4 sounds (collision thud, fall whoosh, win jingle) via Web Audio
       API (generated or small `.ogg` files, no large assets needed)
 - [ ] **4th player online** — `MAX_PLAYERS=4` slots and `SLOT_COLORS` are already wired;
       just needs the lobby UI and local testing
-- [ ] **Analytics** — `measurementId` is already in firebase-config.js; add
-      `import { getAnalytics } from 'firebase/analytics'; getAnalytics(app)` in net.js
 - [ ] **Custom domain** — point DNS to GitHub Pages in repo Settings → Pages
 
 ## TODO / Known issues

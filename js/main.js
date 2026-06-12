@@ -9,6 +9,7 @@ import { banner, hideBanner, showCountdown, hideCountdown } from './hud.js';
 import { startRound, endRound, endMatch, goToMenuFromOnline } from './rounds.js';
 import { buildMenu } from './menu.js';
 import { net, writeFrame, writeInput, ROOM_TTL } from './net.js';
+import { initAnalytics } from './analytics.js';
 
 const SEND_HZ = 20;
 
@@ -195,3 +196,10 @@ buildMenu();
 setupFighters();
 placeFighters();
 requestAnimationFrame(loop);
+
+// Best-effort analytics + PWA service worker (both non-essential; failures are
+// swallowed so they can never affect gameplay).
+initAnalytics();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}

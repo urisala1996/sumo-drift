@@ -7,7 +7,7 @@
 // las reglas de la RTDB. No se usa Firebase Auth: cada cliente genera un id
 // aleatorio y la presencia se gestiona con onDisconnect().
 
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getDatabase, ref, child, get, set, update, remove,
   onValue, onDisconnect, serverTimestamp,
@@ -42,7 +42,9 @@ export function isHost() { return net.isHost; }
 function ensureApp() {
   if (!firebaseReady) throw new Error("Firebase is not configured. Edit js/firebase-config.js.");
   if (!net.app) {
-    net.app = initializeApp(firebaseConfig);
+    // Reuse the app if analytics already created it (and vice versa) — a second
+    // initializeApp with the default name would throw.
+    net.app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     net.db = getDatabase(net.app);
   }
   return net.db;

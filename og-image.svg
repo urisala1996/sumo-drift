@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="0%" r="120%">
+      <stop offset="0%" stop-color="#43307a"/>
+      <stop offset="55%" stop-color="#2a1e4f"/>
+      <stop offset="100%" stop-color="#150e2b"/>
+    </radialGradient>
+    <linearGradient id="logo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff8e3c"/>
+      <stop offset="100%" stop-color="#ff3d6e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Ring on the right -->
+  <g transform="translate(880 315)">
+    <circle r="225" fill="#3d3170" stroke="#f5ead7" stroke-width="9"/>
+    <circle r="34" fill="#ffd9a0"/>
+    <!-- top-down car -->
+    <g transform="rotate(20)">
+      <rect x="-52" y="-78" width="104" height="156" rx="30" fill="#ff8e3c"/>
+      <rect x="-44" y="48" width="88" height="26" rx="13" fill="#ffe066"/>
+      <rect x="-38" y="-48" width="76" height="58" rx="16" fill="#241a44"/>
+      <rect x="-66" y="-58" width="20" height="42" rx="9" fill="#241a44"/>
+      <rect x="46" y="-58" width="20" height="42" rx="9" fill="#241a44"/>
+      <rect x="-66" y="18" width="20" height="42" rx="9" fill="#241a44"/>
+      <rect x="46" y="18" width="20" height="42" rx="9" fill="#241a44"/>
+    </g>
+  </g>
+
+  <!-- Title -->
+  <g font-family="'Segoe UI', Arial, sans-serif" font-weight="900" font-style="italic">
+    <text x="80" y="300" font-size="118" fill="url(#logo)" letter-spacing="-3">DRIFT</text>
+    <text x="80" y="430" font-size="118" fill="#f5ead7" letter-spacing="-3">·SUMO</text>
+  </g>
+  <text x="84" y="500" font-family="'Segoe UI', Arial, sans-serif" font-weight="700"
+        font-size="30" fill="#cfc3e8" letter-spacing="4">KNOCK RIVALS OFF THE RING</text>
+</svg>

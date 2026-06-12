@@ -1,0 +1,14 @@
+{
+  "name": "DRIFT·SUMO",
+  "short_name": "DRIFT·SUMO",
+  "description": "Top-down car sumo — knock your rivals off the shrinking ring.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#2a1e4f",
+  "theme_color": "#2a1e4f",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

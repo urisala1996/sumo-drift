@@ -1,0 +1,8 @@
+# Local Firebase CLI tooling (used only to deploy rules; not part of the static app)
+node_modules/
+package.json
+package-lock.json
+
+# Firebase / debug logs
+*-debug.log
+.firebase/
