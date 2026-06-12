@@ -12,7 +12,7 @@
           ".read": true,
           ".write": true,
           "host":        { ".validate": "newData.isString() && newData.val().length == 36 && (!data.exists() || data.val() == newData.val())" },
-          "status":      { ".validate": "newData.val() == 'lobby' || newData.val() == 'playing'" },
+          "status":      { ".validate": "newData.val() == 'lobby' || newData.val() == 'playing' || newData.val() == 'ended'" },
           "phase":       { ".validate": "newData.isString() && newData.val().length <= 20" },
           "phaseT":      { ".validate": "newData.isNumber()" },
           "ring":        { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
@@ -24,9 +24,13 @@
           "map":         { ".validate": "newData.isString() && newData.val().length <= 24" },
           "ringSize":    { ".validate": "newData.val() == 'small' || newData.val() == 'medium' || newData.val() == 'large'" },
           "sd":          { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 60" },
-          "hostSeen":    { ".validate": "newData.isNumber()" },
-          "createdAt":   { ".validate": "newData.isNumber()" },
-          "$other":      { ".validate": false }
+          "hostSeen":      { ".validate": "newData.isNumber()" },
+          "createdAt":     { ".validate": "newData.isNumber()" },
+          "endWinnerSlot": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+          "endWinnerTag":  { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "endWinnerAI":   { ".validate": "newData.val() == 0 || newData.val() == 1" },
+          "sub":           { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "$other":        { ".validate": false }
         },
 
         "players": {
