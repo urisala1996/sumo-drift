@@ -1,5 +1,5 @@
 import { CAR_R } from './config.js';
-import { RAMP_LEN, RAMP_WIDTH } from './maps.js';
+import { RAMP_LEN, RAMP_RISE, RAMP_WIDTH } from './maps.js';
 import { state, rng } from './state.js';
 import { spawnSmoke } from './scene.js';
 
@@ -58,6 +58,43 @@ export function resolveObstacles(f, map) {
       }
     }
   }
+
+  // Rampas: colisión lateral (cara frontal/trasera y flancos del cuño).
+  // Un coche que no venga con suficiente velocidad cuesta arriba rebota contra
+  // la cara del cuño en lugar de atravesarlo.
+  for (const r of (map.ramps || [])) {
+    // Marco local de la rampa: eje +X = cuesta arriba (dx,dz), eje +Z = flanco.
+    const along  =  (f.x - r.x) * r.dx  + (f.z - r.z) * r.dz;
+    const across = -(f.x - r.x) * r.dz  + (f.z - r.z) * r.dx;
+
+    // ¿Está el coche en la huella XZ de la rampa?
+    if (Math.abs(along) > RAMP_HALF_L + CAR_R || Math.abs(across) > RAMP_HALF_W + CAR_R) continue;
+
+    // Altura de la superficie inclinada en este punto (0 en la base, RAMP_RISE en la cima).
+    const surfaceH = Math.max(0, ((along + RAMP_HALF_L) / RAMP_LEN) * RAMP_RISE);
+
+    // Colisión lateral: cara frontal (high end) / trasera (low end) / flancos.
+    // Solo aplicamos si el coche está por debajo de la altura de la rampa
+    // (si está encima, la rampa ya lo lanzó o está saltando).
+    if (f.y < surfaceH) {
+      // Cara frontal (along > RAMP_HALF_L - CAR_R): empuja hacia atrás.
+      if (along > RAMP_HALF_L - CAR_R && along < RAMP_HALF_L + CAR_R && Math.abs(across) < RAMP_HALF_W) {
+        const pen = RAMP_HALF_L + CAR_R - along;
+        f.x -= r.dx * pen; f.z -= r.dz * pen;
+        const vn = f.vx * r.dx + f.vz * r.dz;
+        if (vn > 0) { const e = .25; f.vx -= (1 + e) * vn * r.dx; f.vz -= (1 + e) * vn * r.dz; }
+        spawnSmoke(f.x, f.z, 0xffd9a0);
+      }
+      // Flancos (across ≈ ±RAMP_HALF_W): empuja lateralmente.
+      if (Math.abs(across) > RAMP_HALF_W - CAR_R && Math.abs(across) < RAMP_HALF_W + CAR_R && Math.abs(along) < RAMP_HALF_L) {
+        const sn = Math.sign(across), pen = RAMP_HALF_W + CAR_R - Math.abs(across);
+        const nx = -r.dz * sn, nz = r.dx * sn;
+        f.x += nx * pen; f.z += nz * pen;
+        const vn = f.vx * nx + f.vz * nz;
+        if (vn < 0) { const e = .25; f.vx -= (1 + e) * vn * nx; f.vz -= (1 + e) * vn * nz; }
+      }
+    }
+  }
 }
 
 // Comprueba si el coche debe caer (pozo interior o borde del ring).
@@ -69,6 +106,7 @@ function fallCheck(f, map) {
 
 export function physicsCar(f, dt, steerTarget, brake) {
   if (f.falling) {
+    f.brakeT = 0;
     f.vy -= 55 * dt; f.y += f.vy * dt;
     f.x += f.vx * dt; f.z += f.vz * dt;
     f.spin += dt * 5;
@@ -83,6 +121,7 @@ export function physicsCar(f, dt, steerTarget, brake) {
 
   // ----- En el aire (salto de rampa): vuelo balístico -----
   if (f.air) {
+    f.brakeT = 0;
     f.steer += (steerTarget - f.steer) * Math.min(1, dt * 10);
     f.heading += f.steer * cfg.turn * dt * 0.4;   // control aéreo leve
     f.x += f.vx * dt; f.z += f.vz * dt;
@@ -101,19 +140,32 @@ export function physicsCar(f, dt, steerTarget, brake) {
   }
 
   // ----- En el suelo (modelo de conducción original) -----
-  f.steer += (steerTarget - f.steer) * Math.min(1, dt * 10);
+  f.steer += (steerTarget - f.steer) * Math.min(1, dt * 8);
   const speed0 = Math.hypot(f.vx, f.vz);
-  f.heading += f.steer * cfg.turn * dt * Math.min(1, speed0 / 12);
+  f.heading += f.steer * cfg.turn * dt * Math.min(1, speed0 / 7);
   const fx = Math.sin(f.heading), fz = -Math.cos(f.heading);
-  const acc = brake ? 0 : cfg.accel;
+
+  // Acumula tiempo de freno para activar marcha atrás tras 2s.
+  if (brake) { f.brakeT += dt; } else { f.brakeT = 0; }
+  const reversing = brake && f.brakeT > 2.0;
+  const maxReverse = cfg.topSpeed * 0.4;
+
+  const acc = (brake && !reversing) ? 0 : (!brake ? cfg.accel : 0);
   f.vx += fx * acc * dt; f.vz += fz * acc * dt;
   let vF = f.vx * fx + f.vz * fz;
   const rx = -fz, rz = fx;
   let vL = f.vx * rx + f.vz * rz;
   vL *= Math.max(0, 1 - (brake ? cfg.grip * 1.6 : cfg.grip) * dt);
-  vF *= Math.max(0, 1 - (brake ? 6.0 : .35) * dt);
-  if (vF > cfg.topSpeed) vF = cfg.topSpeed;
-  if (vF < 0) vF = 0;
+
+  if (reversing) {
+    // Empuja hacia atrás activamente.
+    vF -= cfg.accel * 0.6 * dt;
+    if (vF < -maxReverse) vF = -maxReverse;
+  } else {
+    vF *= Math.max(0, 1 - (brake ? 6.0 : .35) * dt);
+    if (vF > cfg.topSpeed) vF = cfg.topSpeed;
+    if (vF < 0) vF = 0;
+  }
   f.vx = fx * vF + rx * vL; f.vz = fz * vF + rz * vL;
   f.x += f.vx * dt; f.z += f.vz * dt;
 

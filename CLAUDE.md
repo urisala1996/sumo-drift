@@ -13,13 +13,12 @@ Selectable battle maps with obstacles, ramps and pits (see [js/maps.js](js/maps.
   clients send only input `{l,r,b}` and render interpolated.
 
 ## TODO / Known issues
-- [ ] **Handling too twitchy** — cars accelerate too hard; reduce top speed/accel and add
-      controllability (tune `CARS` in [js/config.js](js/config.js) + the driving model in
-      [js/physics.js](js/physics.js)).
-- [ ] **Reverse on long brake** — holding brake for >2s should make the car drive backwards
-      (currently brake only decelerates; see brake handling in [js/physics.js](js/physics.js)).
-- [ ] **Brake lights wrong color** — they're red; should be white/yellow
-      (`blMat` / brake-light meshes in [js/cars.js](js/cars.js)).
+- [x] **Handling too twitchy** — reduced top speed ~40% and accel proportionally; steering
+      authority now kicks in at lower speed (`speed0/7` vs `/12`); grip increased slightly.
+- [x] **Reverse on long brake** — holding brake >2s now drives backwards at 40% top speed
+      (`brakeT` accumulator in [js/physics.js](js/physics.js)).
+- [x] **Brake lights wrong color** — changed to warm yellow `0xffe066`
+      (`blMat` in [js/cars.js](js/cars.js)).
 - [ ] **Online "Revancha" broken** — after an online match ends, clicking Revancha doesn't work
       and the player's car appears alone (rematch path for online in
       [js/rounds.js](js/rounds.js) / [js/menu.js](js/menu.js); host must re-run setup and
@@ -28,6 +27,6 @@ Selectable battle maps with obstacles, ramps and pits (see [js/maps.js](js/maps.
       drops the connection and the room is already gone. Add grace time / don't delete the room
       immediately on disconnect; only clean up after sustained idle
       (`onDisconnect` handling in [js/net.js](js/net.js)).
-- [ ] **Ramps need collision** — crashing into a ramp passes through it; ramps should have a
-      solid body (only the up-slope launch zone is handled now in
-      [js/physics.js](js/physics.js) `rampAt`; add collision against the ramp wedge).
+- [x] **Ramps need collision** — added wedge collision in `resolveObstacles`
+      ([js/physics.js](js/physics.js)): front face and flanks push cars out and reflect
+      velocity; only cars approaching up-slope fast enough get launched.

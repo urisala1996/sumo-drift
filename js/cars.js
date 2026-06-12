@@ -14,7 +14,7 @@ function makeFighter(r) {
     mesh: m.mesh, wheels: m.wheels, brakeLights: m.brakeLights,
     isAI: r.ctrl === "ai", wins: 0,
     x: 0, z: 0, vx: 0, vz: 0, heading: 0, steer: 0,
-    alive: true, falling: false, air: false, y: 0, vy: 0, spin: 0, brake: false,
+    alive: true, falling: false, air: false, y: 0, vy: 0, spin: 0, brake: false, brakeT: 0,
     aggro: .6 + rng() * .5,
     // objetivos de interpolación para clientes online
     tx: 0, tz: 0, ty: 0, theading: 0, tsteer: 0,
@@ -51,7 +51,7 @@ export function makeCarMesh(cfg) {
     w.position.set(p[0], .45, p[1]); w.castShadow = true; g.add(w); wheels.push(w);
   });
 
-  const blMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+  const blMat = new THREE.MeshBasicMaterial({ color: 0xffe066 });
   const bl1 = new THREE.Mesh(new THREE.BoxGeometry(.55, .32, .18), blMat);
   bl1.position.set(-.7, .85, 2.25); bl1.visible = false; g.add(bl1);
   const bl2 = bl1.clone(); bl2.position.x = .7; g.add(bl2);
@@ -116,7 +116,7 @@ export function placeFighters() {
     f.z = Math.sin(a) * RING_R0 * .55;
     f.vx = 0; f.vz = 0; f.steer = 0;
     f.heading = Math.atan2(-f.x, f.z);
-    f.alive = true; f.falling = false; f.air = false; f.y = 0; f.vy = 0; f.spin = 0; f.brake = false;
+    f.alive = true; f.falling = false; f.air = false; f.y = 0; f.vy = 0; f.spin = 0; f.brake = false; f.brakeT = 0;
     // objetivos de interpolación = posición inicial (evita "saltos" en clientes)
     f.tx = f.x; f.tz = f.z; f.ty = 0; f.theading = f.heading; f.tsteer = 0;
     f.mesh.visible = true;
