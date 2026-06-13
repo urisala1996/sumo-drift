@@ -9,17 +9,29 @@ import { net, MAX_PLAYERS, playersList } from './net.js';
 function makeFighter(r) {
   const m = makeCarMesh(CARS[r.ci]);
   return {
-    cfg: CARS[r.ci], ctrl: r.ctrl, tag: r.tag,
+    // cfg es una COPIA: el gauntlet escala stats por coche/oleada y no debe
+    // mutar la entrada compartida de CARS.
+    cfg: { ...CARS[r.ci] }, ctrl: r.ctrl, tag: r.tag,
     slot: r.slot, clientId: r.clientId || null,
     mesh: m.mesh, wheels: m.wheels, brakeLights: m.brakeLights, aura: m.aura,
     isAI: r.ctrl === "ai", wins: 0,
     x: 0, z: 0, vx: 0, vz: 0, heading: 0, steer: 0,
     alive: true, falling: false, air: false, y: 0, vy: 0, spin: 0, brake: false, brakeT: 0,
     fx: 0, fxT: 0,   // power-up activo (id) y tiempo restante
+    lives: 0, bump: 0,   // gauntlet: vidas extra y restitución pasiva (BUMPER)
     aggro: .6 + rng() * .5,
     // objetivos de interpolación para clientes online
     tx: 0, tz: 0, ty: 0, theading: 0, tsteer: 0,
   };
+}
+
+// Reconstruye state.fighters a partir de un roster ya resuelto. La usan tanto
+// setupFighters (local/online) como el gauntlet (que arma su propio roster).
+export function buildFighters(roster) {
+  state.fighters.forEach(f => state.scene.remove(f.mesh));
+  state.fighters = [];
+  roster.forEach(r => state.fighters.push(makeFighter(r)));
+  buildScoreUI();
 }
 
 // Selecciona el coche libre de menor índice que no esté en `taken`.
@@ -93,8 +105,6 @@ function onlineRoster() {
 }
 
 export function setupFighters() {
-  state.fighters.forEach(f => state.scene.remove(f.mesh));
-  state.fighters = [];
   let roster;
   if (state.mode === "online") {
     roster = onlineRoster();
@@ -113,8 +123,7 @@ export function setupFighters() {
       { ci: other,       ctrl: "ai", slot: 2, tag: "CPU" },
     ];
   }
-  roster.forEach(r => state.fighters.push(makeFighter(r)));
-  buildScoreUI();
+  buildFighters(roster);
 }
 
 export function placeFighters() {

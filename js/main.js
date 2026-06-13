@@ -12,6 +12,7 @@ import { net, writeFrame, writeInput, ROOM_TTL } from './net.js';
 import { initAnalytics } from './analytics.js';
 import * as sfx from './audio.js';
 import { spawnPickups, collectPickups, tickEffects, renderPickups } from './pickups.js';
+import { onWaveCleared } from './gauntlet.js';
 
 const SEND_HZ = 20;
 
@@ -164,8 +165,12 @@ function loop(t) {
     const r0 = state.ringR0;
     state.playT += dt;
     state.sd = -1;   // por defecto sin muerte súbita (la rama de abajo lo activa)
-    setRing(Math.max(RING_RMIN, r0 - (r0 - RING_RMIN) * (state.playT / SHRINK_T)));
+    setRing(Math.max(RING_RMIN, r0 - (r0 - RING_RMIN) * (state.playT / (state.shrinkT || SHRINK_T))));
     document.getElementById("ringLbl").textContent = "RING " + Math.round(state.ringR / r0 * 100) + "%";
+    if (state.gaunt.active) {
+      const p = state.fighters[0];
+      document.getElementById("livesLbl").textContent = p ? "♥".repeat(p.lives) : "";
+    }
     if (state.powerups) tickEffects(dt);   // decae efectos antes de la física (boost)
     for (const f of state.fighters) {
       if (!f.alive) continue;
@@ -184,7 +189,11 @@ function loop(t) {
     updateCamera(dt);
     const alive = state.fighters.filter(f => f.alive && !f.falling);
     const fallingStill = state.fighters.some(f => f.falling);
-    if (alive.length <= 1 && !fallingStill) {
+    const player = state.fighters[0];
+    if (state.gaunt.active && player && !player.alive && !player.falling) {
+      // Gauntlet: la run acaba en cuanto el jugador cae (no esperes a las CPUs).
+      endRound(null);
+    } else if (alive.length <= 1 && !fallingStill) {
       endRound(alive[0] || null);
     } else if (state.ringR <= RING_RMIN + 0.01) {
       // Muerte súbita: el ring está al mínimo, cuenta atrás hasta empate.
@@ -202,9 +211,15 @@ function loop(t) {
     updateCamera(dt);
     if (state.phaseT > 2.2) {
       hideBanner();
-      const champ = state.fighters.find(f => f.wins >= WINS_NEEDED);
-      if (champ) endMatch(champ);
-      else { state.round++; startRound(); }
+      if (state.gaunt.active) {
+        // Gauntlet: superas la oleada si sigues en pie; si no, fin de la run.
+        const p = state.fighters[0];
+        onWaveCleared(p && p.alive && !p.falling);
+      } else {
+        const champ = state.fighters.find(f => f.wins >= WINS_NEEDED);
+        if (champ) endMatch(champ);
+        else { state.round++; startRound(); }
+      }
     }
 
   } else {

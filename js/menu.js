@@ -4,6 +4,7 @@ import { state } from './state.js';
 import { startMatch, show, hide, goToMenuFromOnline, quitMatch } from './rounds.js';
 import { buildLobby, openLobby } from './lobby.js';
 import { isMuted, toggleMuted } from './audio.js';
+import { startGauntlet, getBest } from './gauntlet.js';
 
 const RING_SIZE_LABELS = { small: "SMALL", medium: "MEDIUM", large: "LARGE" };
 
@@ -70,14 +71,44 @@ function pickCar(i) {
   updateCarUI();
 }
 
+// Muestra/oculta los selectores de mapa y arena (en gauntlet los controla el modo).
+function showPickers(on) {
+  ["menuMaps", "menuRing"].forEach(id => {
+    const wrap = document.getElementById(id).closest(".mapPickWrap");
+    if (wrap) wrap.style.display = on ? "" : "none";
+  });
+}
+
 function setMode(m) {
   document.querySelectorAll("#modeToggle button").forEach(b =>
     b.classList.toggle("on", b.dataset.m === String(m))
   );
   if (m === "online") { openLobby(); return; }
 
+  const best = document.getElementById("gauntBest");
+  const play = document.getElementById("playBtn");
+
+  if (m === "gauntlet") {
+    state.mode = "local";
+    state.players = 1;
+    state.selP1 = 0;
+    showPickers(false);
+    best.style.display = "";
+    best.textContent = "SURVIVE THE WAVES · BEST: " + getBest();
+    document.getElementById("menuHow").innerHTML =
+      'Endless solo run. Each <b>wave</b> adds tougher rivals; survive and <b>draft an upgrade</b> between waves. One knock-off ends the run — how deep can you go?';
+    document.getElementById("pickPrompt").textContent = "Pick your car";
+    play.disabled = false;
+    play.onclick = startGauntlet;
+    updateCarUI();
+    return;
+  }
+
   state.mode = "local";
   state.players = +m;
+  showPickers(true);
+  best.style.display = "none";
+  play.onclick = startMatch;
   // El menú local solo deja elegir entre los 3 primeros coches (el 4º, VOLT,
   // queda para online); selP usa índices 0..2.
   if (state.players === 2) { state.selP1 = 0; state.selP2 = 1; } else { state.selP1 = 0; }

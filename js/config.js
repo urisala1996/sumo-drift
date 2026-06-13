@@ -36,3 +36,11 @@ export const PK_MAX = 3;        // máximo de pickups en el ring a la vez
 export const PK_LIFE = 11;      // segundos antes de que un pickup sin recoger expire
 export const BOOST_MULT = 1.55; // factor de aceleración/velocidad punta con boost
 export const RAM_E = 2.6;       // restitución extra del golpe coche-coche con embestida
+
+// ---------------------------------------------------------------------------
+// Gauntlet (roadmap #4). Modo en solitario de oleadas crecientes. Solo afecta a
+// la dificultad por oleada; las mejoras (upgrades) viven en js/gauntlet.js.
+// ---------------------------------------------------------------------------
+export const GAUNT_SHRINK_MIN = 22;        // SHRINK_T mínimo (oleadas más rápidas al avanzar)
+export const GAUNT_CPU_SCALE_PER_WAVE = .04; // +4% stats de CPU por oleada
+export const GAUNT_AGGRO_PER_WAVE = .05;     // +0.05 de agresividad de CPU por oleada

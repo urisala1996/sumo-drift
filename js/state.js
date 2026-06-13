@@ -1,4 +1,4 @@
-import { RING_R0, RING_SIZES } from './config.js';
+import { RING_R0, RING_SIZES, SHRINK_T } from './config.js';
 
 export const state = {
   scene: null,
@@ -34,6 +34,12 @@ export const state = {
   pkSpawnAcc: 0,      // acumulador del scheduler (host)
   pkNextId: 1,        // id incremental de pickups (host)
   pkMeshes: {},       // id -> THREE.Mesh (host y cliente)
+
+  // Gauntlet (roadmap #4). Submodo en solitario; active gatea toda su lógica.
+  // mods acumula las mejoras de la run; se reaplican al coche del jugador en cada
+  // oleada. shrinkT permite variar la velocidad de encogimiento del ring por oleada.
+  gaunt: { active: false, wave: 0, mods: null },
+  shrinkT: SHRINK_T,
 
   players: 1,
   selP1: 0,

@@ -116,3 +116,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--sky);font-fami
 .mapPick button.on{border-color:var(--sun);background:rgba(255,142,60,.16);opacity:1;transform:translateY(-2px)}
 .mapPick button:disabled{cursor:default;opacity:.4}
 .mapPick button:disabled.on{opacity:1}
+
+/* ---------- Gauntlet ---------- */
+#livesLbl{position:absolute;top:calc(env(safe-area-inset-top,0px) + 34px);left:50%;transform:translateX(-50%);font-size:18px;letter-spacing:2px;color:var(--hot);text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.draftCard{position:relative;flex:1;max-width:170px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.16);border-radius:16px;padding:18px 12px;text-align:center;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}
+.draftCard:hover,.draftCard:active{border-color:var(--sun);background:rgba(255,142,60,.14);transform:translateY(-4px)}
+.draftCard h3{font-size:16px;font-weight:900;letter-spacing:1px;margin-bottom:8px;color:var(--sun)}
+.draftCard p{font-size:12px;line-height:1.4;opacity:.85}

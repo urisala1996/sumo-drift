@@ -104,9 +104,9 @@ export function resolveObstacles(f, map) {
 // Comprueba si el coche debe caer (pozo interior o borde del ring).
 function fallCheck(f, map) {
   if ((map && overHole(f, map)) || Math.hypot(f.x, f.z) > state.ringR + CAR_R * .4) {
-    // Escudo: absorbe una caída. En vez de caer, vuelve justo dentro del borde y
-    // anula la velocidad hacia fuera.
-    if (consumeShield(f)) {
+    // Escudo (power-up) o vida extra (gauntlet): absorbe una caída. En vez de
+    // caer, vuelve justo dentro del borde y anula la velocidad hacia fuera.
+    if (consumeShield(f) || (f.lives > 0 && f.lives--)) {
       const d = Math.hypot(f.x, f.z) || 1, nx = f.x / d, nz = f.z / d;
       const inR = Math.max(2, state.ringR - 3);
       f.x = nx * inR; f.z = nz * inR;
@@ -228,7 +228,9 @@ export function collisions() {
       const rel = (b.vx - a.vx) * nx + (b.vz - a.vz) * nz;
       if (rel < 0) {
         const ram = ramBonus(a, b);              // embestida: restitución extra
-        const e = 1.35 + ram, jimp = -(1 + e) * rel / (1 / ma + 1 / mb);
+        // BUMPER (gauntlet): restitución pasiva extra por coche implicado.
+        const e = 1.35 + ram + (a.bump || 0) + (b.bump || 0);
+        const jimp = -(1 + e) * rel / (1 / ma + 1 / mb);
         a.vx -= jimp * nx / ma; a.vz -= jimp * nz / ma;
         b.vx += jimp * nx / mb; b.vz += jimp * nz / mb;
         const cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2;

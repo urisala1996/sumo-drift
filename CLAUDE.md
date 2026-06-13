@@ -86,6 +86,15 @@ Auth in the future would make the host-write check airtight.
       (`pickups` node) + a per-car effect id (`state.fx`) for the holder aura. Effect hooks
       (`boostFactor`/`consumeShield`/`ramBonus`) live in pickups.js and are called from
       [js/physics.js](js/physics.js). Freeze + Gust deferred (see [ROADMAP.md](ROADMAP.md)).
+- [x] **Gauntlet (roadmap #4)** — [js/gauntlet.js](js/gauntlet.js): solo, **local-only** endless
+      run reached via the **GAUNTLET** menu mode. Each wave is one elimination round; survive to
+      draft 1 of 3 upgrades (ENGINE/NITRO/GRIP/HEAVY/BUMPER/EXTRA-LIFE) accumulated in
+      `state.gaunt.mods` and re-applied to a freshly built player car each wave. Difficulty ramps
+      CPU count (1→2→3) then aggro/stats/ring-shrink (`state.shrinkT`); map rotates per wave. Best
+      depth saved in `localStorage`. All gated by `state.gaunt.active`, so 1P/2P/online are
+      untouched. Per-fighter `cfg` is now a **clone** (was a shared `CARS` ref) so stat upgrades
+      and CPU scaling don't mutate shared config; BUMPER/EXTRA-LIFE hook
+      [js/physics.js](js/physics.js) (`f.bump`, `f.lives` via the shield snap-back in `fallCheck`).
 
 ## TODO / Known issues
 - [x] **Handling too twitchy** — reduced top speed ~40% and accel proportionally; steering

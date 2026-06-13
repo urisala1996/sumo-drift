@@ -7,6 +7,7 @@ import { showControls } from './input.js';
 import { net, writeMeta, leaveRoom } from './net.js';
 import * as sfx from './audio.js';
 import { clearPickups } from './pickups.js';
+import { quitGauntlet } from './gauntlet.js';
 
 function ringRadius(size) { return RING_SIZES[size] || RING_SIZES.small; }
 
@@ -50,7 +51,10 @@ export function startRound() {
   state.phase = "count";
   state.phaseT = 0;
   state._lastCountN = 99;   // so the first countdown tick (3) plays
-  document.getElementById("roundLbl").textContent = "ROUND " + state.round;
+  const g = state.gaunt.active;
+  document.getElementById("roundLbl").textContent = g ? ("WAVE " + state.gaunt.wave) : ("ROUND " + state.round);
+  document.getElementById("score").style.display = g ? "none" : "";   // sin pips en gauntlet
+  document.getElementById("livesLbl").style.display = g ? "" : "none";
 }
 
 export function endRound(winner) {
@@ -58,6 +62,15 @@ export function endRound(winner) {
   state.phaseT = 0;
   state.sd = -1;
   hideCountdown();
+  // Gauntlet: el banner depende de si el jugador (slot 0) sigue en pie. El audio
+  // y la transición de oleada los gestiona onWaveCleared tras la fase roundend.
+  if (state.gaunt.active) {
+    const p = state.fighters[0];
+    const survived = p && p.alive && !p.falling;
+    banner(survived ? `WAVE ${state.gaunt.wave} CLEARED!` : "KNOCKED OUT",
+           survived ? "var(--sun)" : "#ff3d6e");
+    return;
+  }
   if (winner) {
     winner.wins++;
     refreshScoreUI();
@@ -102,13 +115,15 @@ export function endMatch(winner) {
     t.className = "big lose";
   }
   document.getElementById("endSub").textContent = state.fighters.map(f => f.tag + " " + f.wins).join(" · ");
-  document.getElementById("rematchBtn").style.display = "";
+  const rb = document.getElementById("rematchBtn");
+  rb.style.display = ""; rb.textContent = "REMATCH"; rb.onclick = startMatch;
   show("endScr");
   sfx[youWon ? "win" : "lose"]();
 }
 
 // Sale de la partida a mitad (botón QUIT del HUD).
 export function quitMatch() {
+  if (state.gaunt.active) { quitGauntlet(); return; }
   if (state.mode === "online") { goToMenuFromOnline(); return; }
   state.matchActive = false;
   state.phase = "idle";
@@ -146,7 +161,9 @@ function renderEnd(winnerSlot, winnerTag, winnerAI, sub) {
   else { t.textContent = winnerTag + " WINS!"; t.className = "big lose"; }
   document.getElementById("endSub").textContent = sub;
   // La revancha solo la controla el host.
-  document.getElementById("rematchBtn").style.display = net.isHost ? "" : "none";
+  const rb = document.getElementById("rematchBtn");
+  rb.textContent = "REMATCH"; rb.onclick = startMatch;
+  rb.style.display = net.isHost ? "" : "none";
   document.getElementById("hud").style.display = "none";
   show("endScr");
 }

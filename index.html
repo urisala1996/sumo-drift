@@ -42,6 +42,7 @@
 <!-- HUD -->
 <div id="hud">
   <div id="roundLbl">ROUND 1</div>
+  <div id="livesLbl"></div>
   <div id="score"></div>
   <div id="ringLbl">RING 100%</div>
   <button id="quitBtn">QUIT</button>
@@ -69,8 +70,10 @@
   <div class="toggle" id="modeToggle">
     <button data-m="1" class="on">1 PLAYER</button>
     <button data-m="2">LOCAL 2P</button>
+    <button data-m="gauntlet">GAUNTLET</button>
     <button data-m="online">ONLINE</button>
   </div>
+  <div id="gauntBest" class="tag" style="display:none"></div>
   <div id="pickPrompt">Pick your car</div>
   <div class="cars" id="carList"></div>
   <div class="mapPickWrap"><span class="mapPickLbl">MAP</span>
@@ -125,6 +128,13 @@
     <button class="btn" id="startBtn">START!</button>
     <button class="btn ghostBtn" id="leaveBtn">LEAVE</button>
   </div>
+</div>
+
+<!-- Gauntlet draft (between waves) -->
+<div class="screen hidden" id="draftScr">
+  <div class="logo" style="font-size:min(9vw,42px)">LEVEL <i>UP</i></div>
+  <div id="draftTitle" class="tag"></div>
+  <div class="cars" id="draftCards"></div>
 </div>
 
 <!-- End -->

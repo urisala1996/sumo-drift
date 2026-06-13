@@ -6,3 +6,4 @@ package-lock.json
 # Firebase / debug logs
 *-debug.log
 .firebase/
+_capture/
