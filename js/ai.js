@@ -24,7 +24,17 @@ export function aiSteer(f) {
       const d = (o.x - f.x) ** 2 + (o.z - f.z) ** 2;
       if (d < bd) { bd = d; best = o; }
     }
-    if (!best) {
+    // Si hay un pickup cerca (y más cerca que el rival), ve a por él.
+    let pk = null, pd = 1e9;
+    if (state.powerups && !f.fx) {
+      for (const p of state.pickups) {
+        const d = (p.x - f.x) ** 2 + (p.z - f.z) ** 2;
+        if (d < pd) { pd = d; pk = p; }
+      }
+    }
+    if (pk && pd < 18 * 18 && pd < bd) {
+      tx = pk.x; tz = pk.z;
+    } else if (!best) {
       tx = 0; tz = 0;
     } else {
       const od = Math.hypot(best.x, best.z) || 1;

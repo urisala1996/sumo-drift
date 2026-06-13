@@ -11,10 +11,11 @@ function makeFighter(r) {
   return {
     cfg: CARS[r.ci], ctrl: r.ctrl, tag: r.tag,
     slot: r.slot, clientId: r.clientId || null,
-    mesh: m.mesh, wheels: m.wheels, brakeLights: m.brakeLights,
+    mesh: m.mesh, wheels: m.wheels, brakeLights: m.brakeLights, aura: m.aura,
     isAI: r.ctrl === "ai", wins: 0,
     x: 0, z: 0, vx: 0, vz: 0, heading: 0, steer: 0,
     alive: true, falling: false, air: false, y: 0, vy: 0, spin: 0, brake: false, brakeT: 0,
+    fx: 0, fxT: 0,   // power-up activo (id) y tiempo restante
     aggro: .6 + rng() * .5,
     // objetivos de interpolación para clientes online
     tx: 0, tz: 0, ty: 0, theading: 0, tsteer: 0,
@@ -56,8 +57,16 @@ export function makeCarMesh(cfg) {
   bl1.position.set(-.7, .85, 2.25); bl1.visible = false; g.add(bl1);
   const bl2 = bl1.clone(); bl2.position.x = .7; g.add(bl2);
 
+  // Aura de power-up: anillo plano bajo el coche, oculto por defecto. La maneja
+  // pickups.js (color + visibilidad) según f.fx.
+  const aura = new THREE.Mesh(
+    new THREE.RingGeometry(2.6, 3.3, 28),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .55, side: THREE.DoubleSide })
+  );
+  aura.rotation.x = -Math.PI / 2; aura.position.y = .12; aura.visible = false; g.add(aura);
+
   state.scene.add(g);
-  return { mesh: g, wheels, brakeLights: [bl1, bl2] };
+  return { mesh: g, wheels, brakeLights: [bl1, bl2], aura };
 }
 
 // Construye el roster de la sala online a partir de net.players (sincronizado)
@@ -118,11 +127,13 @@ export function placeFighters() {
     f.vx = 0; f.vz = 0; f.steer = 0;
     f.heading = Math.atan2(-f.x, f.z);
     f.alive = true; f.falling = false; f.air = false; f.y = 0; f.vy = 0; f.spin = 0; f.brake = false; f.brakeT = 0;
+    f.fx = 0; f.fxT = 0;
     // objetivos de interpolación = posición inicial (evita "saltos" en clientes)
     f.tx = f.x; f.tz = f.z; f.ty = 0; f.theading = f.heading; f.tsteer = 0;
     f.mesh.visible = true;
     f.mesh.position.set(f.x, 0, f.z);
     f.mesh.rotation.set(0, -f.heading + Math.PI, 0);
     f.brakeLights.forEach(b => b.visible = false);
+    if (f.aura) f.aura.visible = false;
   });
 }

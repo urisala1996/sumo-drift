@@ -11,6 +11,7 @@ import { buildMenu } from './menu.js';
 import { net, writeFrame, writeInput, ROOM_TTL } from './net.js';
 import { initAnalytics } from './analytics.js';
 import * as sfx from './audio.js';
+import { spawnPickups, collectPickups, tickEffects, renderPickups } from './pickups.js';
 
 const SEND_HZ = 20;
 
@@ -104,6 +105,7 @@ function clientFrame(dt) {
     }
     for (const f of state.fighters) lerpFighter(f, dt);
     clientCollisionSfx();
+    renderPickups(dt);   // pickups vienen de la red; auras de f.fx (applyNetState)
     let warn = false;
     for (const f of state.fighters) {
       if (f.slot === net.slot && f.alive && !f.falling && Math.hypot(f.x, f.z) > state.ringR - 5) warn = true;
@@ -164,12 +166,14 @@ function loop(t) {
     state.sd = -1;   // por defecto sin muerte súbita (la rama de abajo lo activa)
     setRing(Math.max(RING_RMIN, r0 - (r0 - RING_RMIN) * (state.playT / SHRINK_T)));
     document.getElementById("ringLbl").textContent = "RING " + Math.round(state.ringR / r0 * 100) + "%";
+    if (state.powerups) tickEffects(dt);   // decae efectos antes de la física (boost)
     for (const f of state.fighters) {
       if (!f.alive) continue;
       const { st, br } = resolveInput(f, online);
       physicsCar(f, dt, st, br);
     }
     collisions();
+    if (state.powerups) { collectPickups(); spawnPickups(dt); }
     let warn = false;
     for (const f of state.fighters) {
       const localHuman = online ? (f.clientId === net.clientId) : !f.isAI;
@@ -208,6 +212,7 @@ function loop(t) {
   }
 
   if (host && state.matchActive) maybeSendFrame(dt);
+  renderPickups(dt);   // host/local: anima pickups + auras en todas las fases
   state.renderer.render(state.scene, state.camera);
 }
 

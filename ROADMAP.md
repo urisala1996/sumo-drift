@@ -10,14 +10,17 @@ unlock targets reuse, so build it first.
 
 ---
 
-## 1. Power-ups & hazard events 🟡 *(planning — next up)*
-Mid-round pickups (speed boost, heavy "ram" charge, one-hit shield, brief rival freeze) plus
-timed arena events (wind gust toward the edge, temporary extra pit).
-- **Fits:** physics already has impulses; maps already place features; `f.*` fields sync to
-  clients for free. A pickup is a position + an effect flag on a fighter.
-- **Replayability:** every round differs; comeback swings.
-- **Effort:** medium · **Risk:** balance + host-authoritative collect/broadcast netcode.
-- **Foundation for:** #4 (draft pool), #2 (unlock targets).
+## 1. Power-ups & hazard events 🟢 *(v1 shipped — Boost/Shield/Ram)*
+Mid-round pickups, gated behind a default-on toggle (menu + host lobby switch, synced via
+`meta.powerups`). Implemented in [js/pickups.js](js/pickups.js).
+- **Shipped (v1):** **Boost** (temp speed), **Shield** (survive one knock-off), **Ram** (heavy
+  next car-car hit). Host spawns/collects; effects manifest in synced transforms; clients render
+  pickup positions + a per-car effect id (`fx`) for the holder aura. AI seeks nearby pickups.
+- **Deferred:** **Freeze** (crowd-control pickup) and the **Gust** hazard event (wind toward an
+  edge) — both fit the same `fx`/event scaffolding when we return to this.
+- **Foundation for:** #4 (draft pool reuses the effect hooks), #2 (unlock targets).
+- **Note:** required a `database.rules.json` change (new `pickups` node, `meta.powerups`, per-slot
+  `fx`) — redeploy rules before online use.
 
 ## 2. Persistent progression — garage unlocks & cosmetics 🔵
 Track wins in `localStorage` (later RTDB per device-id). Coins → car skins, trail colors,

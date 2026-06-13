@@ -6,8 +6,8 @@ import { MAPS } from './maps.js';
 import { state } from './state.js';
 import {
   net, MAX_PLAYERS, isReady, createRoom, joinRoom, leaveRoom,
-  setReady, pickCar, setFillAI, setMap, setRingSize, playersList, takenCars,
-  subscribeMeta, subscribePlayers, subscribeInputs, subscribeState,
+  setReady, pickCar, setFillAI, setMap, setRingSize, setPowerups, playersList, takenCars,
+  subscribeMeta, subscribePlayers, subscribeInputs, subscribeState, subscribePickups,
 } from './net.js';
 import { startMatch, applyMeta, applyNetState, goToMenuFromOnline, show, hide } from './rounds.js';
 
@@ -33,13 +33,18 @@ function enterRoom(asHost) {
   document.getElementById("startBtn").style.display = asHost ? "" : "none";
   document.getElementById("readyBtn").style.display = asHost ? "none" : "";
   document.getElementById("fillAIRow").style.display = asHost ? "" : "none";
+  document.getElementById("powerupsRow").style.display = asHost ? "" : "none";
   renderMapPicker();
   renderRingPicker();
 
   subscribeMeta(m => { onMeta(m); applyMeta(m); });
   subscribePlayers(() => renderPlayers());
-  if (asHost) subscribeInputs(() => {});   // alimenta state.remoteInputs en el host
-  else subscribeState(applyNetState);       // el cliente recibe transformaciones
+  if (asHost) {
+    subscribeInputs(() => {});               // alimenta state.remoteInputs en el host
+  } else {
+    subscribeState(applyNetState);            // el cliente recibe transformaciones
+    subscribePickups(applyNetPickups);        // y los pickups para renderizarlos
+  }
   renderPlayers();
 }
 
@@ -48,11 +53,21 @@ function onMeta(m) {
   net.fillAI = !!m.fillAI;
   const t = document.getElementById("fillAIToggle");
   if (t) t.classList.toggle("on", net.fillAI);
+  state.powerups = m.powerups !== false;
+  const pt = document.getElementById("powerupsToggle");
+  if (pt) pt.classList.toggle("on", state.powerups);
   state.mapId = m.map || "clasico";
   state.ringSize = m.ringSize || "small";
   renderMapPicker();
   renderRingPicker();
   updateStartBtn();
+}
+
+// Cliente: convierte el nodo `pickups` de la red en state.pickups para render.
+function applyNetPickups(pk) {
+  state.pickups = pk
+    ? Object.entries(pk).map(([id, v]) => ({ id: +id, type: v.type, x: v.x, z: v.z, t: 0 }))
+    : [];
 }
 
 // Selector de mapa: solo el host puede cambiarlo; los clientes ven el elegido.
@@ -191,6 +206,8 @@ export function buildLobby() {
     setReady(!(me && me.ready));
   };
   document.getElementById("fillAIToggle").onclick = () => setFillAI(!net.fillAI);
+  document.getElementById("powerupsToggle").onclick = () =>
+    setPowerups(!document.getElementById("powerupsToggle").classList.contains("on"));
   document.getElementById("startBtn").onclick = () => startMatch();
   document.getElementById("leaveBtn").onclick = () => goToMenuFromOnline();
   document.getElementById("lobbyBack").onclick = () => {

@@ -25,6 +25,16 @@ export const state = {
   sd: -1,
   // Cliente: objetivo de tamaño de ring para interpolar (evita el "tick").
   ringTarget: null,
+
+  // Power-ups (roadmap #1). powerups = toggle (default on). El host mantiene
+  // `pickups` como verdad de juego; el cliente lo sobrescribe desde la red solo
+  // para renderizar. pkMeshes mapea id->malla del pickup.
+  powerups: true,
+  pickups: [],        // [{ id, type, x, z, t }]
+  pkSpawnAcc: 0,      // acumulador del scheduler (host)
+  pkNextId: 1,        // id incremental de pickups (host)
+  pkMeshes: {},       // id -> THREE.Mesh (host y cliente)
+
   players: 1,
   selP1: 0,
   selP2: 1,

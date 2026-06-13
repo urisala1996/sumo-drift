@@ -121,6 +121,28 @@ export function point() {
   o.connect(g).connect(master); o.start(t); o.stop(t + 0.27);
 }
 
+// Power-up collected: bright two-note blip.
+export function pickup() {
+  if (!ensure() || muted) return;
+  const t = ctx.currentTime;
+  [660, 990].forEach((hz, i) => {
+    const o = ctx.createOscillator(); o.type = "square"; o.frequency.value = hz;
+    const g = ctx.createGain(); env(g, t + i * 0.07, 0.004, 0.16, 0.1);
+    o.connect(g).connect(master); o.start(t + i * 0.07); o.stop(t + i * 0.07 + 0.14);
+  });
+}
+
+// Shield absorbed a knock-off: soft descending chime.
+export function shieldSave() {
+  if (!ensure() || muted) return;
+  const t = ctx.currentTime;
+  const o = ctx.createOscillator(); o.type = "triangle";
+  o.frequency.setValueAtTime(880, t);
+  o.frequency.exponentialRampToValueAtTime(520, t + 0.25);
+  const g = ctx.createGain(); env(g, t, 0.005, 0.2, 0.28);
+  o.connect(g).connect(master); o.start(t); o.stop(t + 0.35);
+}
+
 // Match won: short ascending arpeggio.
 export function win() {
   if (!ensure() || muted) return;

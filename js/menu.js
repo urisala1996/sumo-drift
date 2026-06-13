@@ -113,6 +113,10 @@ export function buildMenu() {
   const syncMute = () => { mute.textContent = isMuted() ? "🔇" : "🔊"; };
   syncMute();
   mute.onclick = () => { toggleMuted(); syncMute(); };
+  const power = document.getElementById("menuPowerToggle");
+  const syncPower = () => power.classList.toggle("on", state.powerups);
+  syncPower();
+  power.onclick = () => { state.powerups = !state.powerups; syncPower(); };
   buildMapPicker();
   buildRingPicker();
   buildLobby();

@@ -23,6 +23,7 @@
           "fillAI":      { ".validate": "newData.isBoolean()" },
           "map":         { ".validate": "newData.isString() && newData.val().length <= 24" },
           "ringSize":    { ".validate": "newData.val() == 'small' || newData.val() == 'medium' || newData.val() == 'large'" },
+          "powerups":    { ".validate": "newData.isBoolean()" },
           "sd":          { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 60" },
           "hostSeen":      { ".validate": "newData.isNumber()" },
           "createdAt":     { ".validate": "newData.isNumber()" },
@@ -73,7 +74,20 @@
             "falling": { ".validate": "newData.val() == 0 || newData.val() == 1" },
             "brake":   { ".validate": "newData.val() == 0 || newData.val() == 1" },
             "wins":    { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20" },
+            "fx":      { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
             "$other":  { ".validate": false }
+          }
+        },
+
+        "pickups": {
+          ".read": true,
+          ".write": true,
+          "$id": {
+            ".validate": "newData.hasChildren(['type','x','z'])",
+            "type":   { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 3" },
+            "x":      { ".validate": "newData.isNumber() && newData.val() >= -150 && newData.val() <= 150" },
+            "z":      { ".validate": "newData.isNumber() && newData.val() >= -150 && newData.val() <= 150" },
+            "$other": { ".validate": false }
           }
         },
 

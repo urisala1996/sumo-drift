@@ -36,6 +36,8 @@ What the rules enforce:
 - All fields are type- and range-validated; unknown fields are rejected
 - Player names ≤ 20 chars, coordinates bounded to ±150 (largest arena + margin)
 - Inputs locked to `0 | 1`; car/slot indices bounded to `0–3`
+- Power-ups: `meta.powerups` (bool), per-slot `state.fx` (0–3), and a `pickups` node
+  (`{type:1–3, x, z}`). **Adding these required a rules change — redeploy before online use.**
 
 Limitation: without Firebase Auth we can't cryptographically verify that the writer
 of `meta` / `state` is the actual host. We rely on UUID obscurity for clientIds
@@ -75,6 +77,15 @@ Auth in the future would make the host-write check airtight.
       slots. HUD score row made responsive for 4 entries. **Needs a live 4-device/4-tab test**
       (can't be verified locally without 4 clients).
 - [ ] **Custom domain** — point DNS to GitHub Pages in repo Settings → Pages
+
+## Features
+- [x] **Power-ups (roadmap #1)** — [js/pickups.js](js/pickups.js): mid-round pickups behind a
+      default-on toggle (menu + host lobby switch, synced `meta.powerups`). v1 = **Boost** (temp
+      speed), **Shield** (survive one knock-off), **Ram** (heavy next hit). Host spawns/collects
+      and runs effects; effects show in synced transforms, so clients only get pickup positions
+      (`pickups` node) + a per-car effect id (`state.fx`) for the holder aura. Effect hooks
+      (`boostFactor`/`consumeShield`/`ramBonus`) live in pickups.js and are called from
+      [js/physics.js](js/physics.js). Freeze + Gust deferred (see [ROADMAP.md](ROADMAP.md)).
 
 ## TODO / Known issues
 - [x] **Handling too twitchy** — reduced top speed ~40% and accel proportionally; steering

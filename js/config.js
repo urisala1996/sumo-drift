@@ -16,3 +16,23 @@ export const CARS = [
 
 // Color por defecto para cada plaza (slot) del ring; coincide con --p1..--p4 del CSS
 export const SLOT_COLORS = [0xff8e3c, 0x3ddbb4, 0x6c5ce7, 0xffd93d];
+
+// ---------------------------------------------------------------------------
+// Power-ups (roadmap #1). Recogibles que aparecen en el ring durante el juego.
+// El host decide spawns/recogida; los clientes solo renderizan (posición +
+// efecto por coche, sincronizados). Efecto por id: 0 ninguno, 1 boost, 2 escudo,
+// 3 embestida. Cada coche lleva f.fx (id) y f.fxT (segundos restantes).
+// ---------------------------------------------------------------------------
+export const PK = { BOOST: 1, SHIELD: 2, RAM: 3 };
+export const PK_TYPES = [PK.BOOST, PK.SHIELD, PK.RAM];
+export const PK_DEFS = {
+  [PK.BOOST]:  { key: "boost",  color: 0x3ddbb4, dur: 4 },   // velocidad temporal
+  [PK.SHIELD]: { key: "shield", color: 0xffd93d, dur: 9 },   // sobrevive una caída
+  [PK.RAM]:    { key: "ram",    color: 0xff3d6e, dur: 6 },   // próximo golpe pesado
+};
+export const PK_R = 1.7;        // radio de recogida del pickup
+export const PK_SPAWN_T = 6;    // segundos entre intentos de spawn
+export const PK_MAX = 3;        // máximo de pickups en el ring a la vez
+export const PK_LIFE = 11;      // segundos antes de que un pickup sin recoger expire
+export const BOOST_MULT = 1.55; // factor de aceleración/velocidad punta con boost
+export const RAM_E = 2.6;       // restitución extra del golpe coche-coche con embestida

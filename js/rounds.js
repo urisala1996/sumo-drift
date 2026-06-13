@@ -6,6 +6,7 @@ import { refreshScoreUI, banner, hideBanner, showCountdown, hideCountdown } from
 import { showControls } from './input.js';
 import { net, writeMeta, leaveRoom } from './net.js';
 import * as sfx from './audio.js';
+import { clearPickups } from './pickups.js';
 
 function ringRadius(size) { return RING_SIZES[size] || RING_SIZES.small; }
 
@@ -20,13 +21,14 @@ export function startMatch() {
   loadMap(state.mapId);
   showControls();
   state.round = 1;
+  state.pkSpawnAcc = 0; state.pkNextId = 1; clearPickups();
   if (state.mode === "online") {
     // Nuevo matchId en cada arranque (incluida la revancha): los clientes lo
     // detectan y reconstruyen la partida de cero, sin depender de matchActive.
     // Una sola escritura atómica evita estados intermedios.
     state.matchId = (net.meta.matchId || 0) + 1;
     writeMeta({
-      map: state.mapId, ringSize: state.ringSize, matchId: state.matchId, status: "playing",
+      map: state.mapId, ringSize: state.ringSize, powerups: state.powerups, matchId: state.matchId, status: "playing",
       round: 1, banner: "", bannerColor: "", sd: -1,
       endWinnerSlot: null, endWinnerTag: null, endWinnerAI: 0, sub: "",
     });
@@ -40,6 +42,7 @@ export function startMatch() {
 export function startRound() {
   setRing(state.ringR0);
   placeFighters();
+  state.pkSpawnAcc = 0; clearPickups();
   state.playT = 0;
   state.sdT = 0;
   state.sd = -1;
@@ -110,6 +113,7 @@ export function quitMatch() {
   state.matchActive = false;
   state.phase = "idle";
   state.sd = -1;
+  clearPickups();
   hideBanner(); hideCountdown();
   document.getElementById("hud").style.display = "none";
   hide("endScr"); show("menu");
@@ -129,6 +133,7 @@ export function clientStartMatch() {
   loadMap(net.meta.map || "clasico");
   showControls();
   placeFighters();
+  clearPickups();
   hide("menu"); hide("endScr"); hide("lobby");
   document.getElementById("hud").style.display = "block";
   state.matchActive = true;
@@ -152,6 +157,7 @@ export function applyMeta(meta) {
   if (!meta) { goToMenuFromOnline("The room was closed."); return; }
   // Cualquier meta recibida implica que el host sigue vivo.
   state.hostSeenAt = Date.now();
+  if (typeof meta.powerups === "boolean") state.powerups = meta.powerups;
 
   // Arranca (o re-arranca en revancha) cuando cambia el matchId con status playing.
   if (meta.status === "playing" && typeof meta.matchId === "number" && meta.matchId !== state.lastMatchId) {
@@ -207,6 +213,9 @@ export function applyNetState(snap) {
     f.tx = s.x; f.tz = s.z; f.ty = s.y;
     f.theading = s.heading; f.tsteer = s.steer;
     f.alive = !!s.alive; f.falling = !!s.falling; f.brake = !!s.brake;
+    const nfx = s.fx || 0;
+    if (!f.fx && nfx) sfx.pickup();   // pickup recogido (derivado para el cliente)
+    f.fx = nfx;
     if (typeof s.wins === "number" && s.wins !== f.wins) { f.wins = s.wins; winsChanged = true; }
   }
   if (winsChanged) refreshScoreUI();
@@ -222,6 +231,7 @@ export function goToMenuFromOnline(msg) {
   state.sd = -1;
   state.ringTarget = null;
   state.phase = "idle";
+  clearPickups();
   hideCountdown();
   document.getElementById("hud").style.display = "none";
   hide("endScr"); hide("lobby"); show("menu");

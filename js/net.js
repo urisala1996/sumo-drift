@@ -88,6 +88,7 @@ export async function createRoom(name) {
     host: net.clientId, status: "lobby", phase: "idle", phaseT: 0,
     ring: 100, round: 1, matchId: 0, banner: "", bannerColor: "", fillAI: true,
     map: state.mapId || "clasico", ringSize: state.ringSize || "small",
+    powerups: state.powerups ?? true,
     hostSeen: serverTimestamp(), createdAt: serverTimestamp(),
   };
   net.fillAI = true;
@@ -153,6 +154,10 @@ export function subscribeState(cb) {
   const r = ref(net.db, `rooms/${net.code}/state`);
   track(onValue(r, s => cb(s.val() || {})));
 }
+export function subscribePickups(cb) {
+  const r = ref(net.db, `rooms/${net.code}/pickups`);
+  track(onValue(r, s => cb(s.val() || null)));
+}
 
 // ---------- Escrituras de cliente (lobby + input) ----------
 export function setReady(v) {
@@ -187,6 +192,11 @@ export function setRingSize(size) {
   net.metaCache.ringSize = size;
   return update(ref(net.db, `rooms/${net.code}/meta`), { ringSize: size });
 }
+export function setPowerups(v) {
+  if (!net.isHost) return;
+  net.metaCache.powerups = !!v;
+  return update(ref(net.db, `rooms/${net.code}/meta`), { powerups: !!v });
+}
 export function writeMeta(partial) {
   if (!net.isHost) return;
   Object.assign(net.metaCache, partial);
@@ -200,11 +210,18 @@ export function writeFrame(fighters, metaPartial) {
   for (const f of fighters) {
     st[f.slot] = {
       x: f.x, z: f.z, y: f.y, heading: f.heading, steer: f.steer,
-      alive: f.alive ? 1 : 0, falling: f.falling ? 1 : 0, brake: f.brake ? 1 : 0, wins: f.wins,
+      alive: f.alive ? 1 : 0, falling: f.falling ? 1 : 0, brake: f.brake ? 1 : 0,
+      wins: f.wins, fx: f.fx || 0,
     };
   }
+  // Pickups: overwrite the whole node from host truth (null clears it).
+  let pk = null;
+  if (state.pickups && state.pickups.length) {
+    pk = {};
+    for (const p of state.pickups) pk[p.id] = { type: p.type, x: p.x, z: p.z };
+  }
   if (metaPartial) Object.assign(net.metaCache, metaPartial);
-  return update(ref(net.db, `rooms/${net.code}`), { state: st, meta: net.metaCache });
+  return update(ref(net.db, `rooms/${net.code}`), { state: st, meta: net.metaCache, pickups: pk });
 }
 
 // ---------- Helpers ----------

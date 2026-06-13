@@ -3,6 +3,7 @@ import { RAMP_LEN, RAMP_RISE, RAMP_WIDTH } from './maps.js';
 import { state, rng } from './state.js';
 import { spawnSmoke } from './scene.js';
 import * as sfx from './audio.js';
+import { boostFactor, consumeShield, ramBonus } from './pickups.js';
 
 const GRAV = 42;          // gravedad de los saltos (rampa)
 const RAMP_HALF_L = RAMP_LEN / 2, RAMP_HALF_W = RAMP_WIDTH / 2;
@@ -103,6 +104,18 @@ export function resolveObstacles(f, map) {
 // Comprueba si el coche debe caer (pozo interior o borde del ring).
 function fallCheck(f, map) {
   if ((map && overHole(f, map)) || Math.hypot(f.x, f.z) > state.ringR + CAR_R * .4) {
+    // Escudo: absorbe una caída. En vez de caer, vuelve justo dentro del borde y
+    // anula la velocidad hacia fuera.
+    if (consumeShield(f)) {
+      const d = Math.hypot(f.x, f.z) || 1, nx = f.x / d, nz = f.z / d;
+      const inR = Math.max(2, state.ringR - 3);
+      f.x = nx * inR; f.z = nz * inR;
+      const vn = f.vx * nx + f.vz * nz;
+      if (vn > 0) { f.vx -= vn * nx; f.vz -= vn * nz; }
+      for (let k = 0; k < 6; k++) spawnSmoke(f.x, f.z, 0xffd93d);
+      sfx.shieldSave();
+      return;
+    }
     f.falling = true; f.air = false; f.vy = 2;
     sfx.whoosh();
   }
@@ -144,6 +157,9 @@ export function physicsCar(f, dt, steerTarget, brake) {
   }
 
   // ----- En el suelo (modelo de conducción original) -----
+  // Boost (power-up): escala aceleración y velocidad punta mientras está activo.
+  const mult = boostFactor(f);
+  const topSpeed = cfg.topSpeed * mult, accel = cfg.accel * mult;
   f.steer += (steerTarget - f.steer) * Math.min(1, dt * 8);
   const speed0 = Math.hypot(f.vx, f.vz);
   f.heading += f.steer * cfg.turn * dt * Math.min(1, speed0 / 7);
@@ -152,9 +168,9 @@ export function physicsCar(f, dt, steerTarget, brake) {
   // Acumula tiempo de freno para activar marcha atrás tras 2s.
   if (brake) { f.brakeT += dt; } else { f.brakeT = 0; }
   const reversing = brake && f.brakeT > 2.0;
-  const maxReverse = cfg.topSpeed * 0.4;
+  const maxReverse = topSpeed * 0.4;
 
-  const acc = (brake && !reversing) ? 0 : (!brake ? cfg.accel : 0);
+  const acc = (brake && !reversing) ? 0 : (!brake ? accel : 0);
   f.vx += fx * acc * dt; f.vz += fz * acc * dt;
   let vF = f.vx * fx + f.vz * fz;
   const rx = -fz, rz = fx;
@@ -163,11 +179,11 @@ export function physicsCar(f, dt, steerTarget, brake) {
 
   if (reversing) {
     // Empuja hacia atrás activamente.
-    vF -= cfg.accel * 0.6 * dt;
+    vF -= accel * 0.6 * dt;
     if (vF < -maxReverse) vF = -maxReverse;
   } else {
     vF *= Math.max(0, 1 - (brake ? 6.0 : .35) * dt);
-    if (vF > cfg.topSpeed) vF = cfg.topSpeed;
+    if (vF > topSpeed) vF = topSpeed;
     if (vF < 0) vF = 0;
   }
   f.vx = fx * vF + rx * vL; f.vz = fz * vF + rz * vL;
@@ -211,11 +227,13 @@ export function collisions() {
       b.x += nx * overlap * (ma / mt); b.z += nz * overlap * (ma / mt);
       const rel = (b.vx - a.vx) * nx + (b.vz - a.vz) * nz;
       if (rel < 0) {
-        const e = 1.35, jimp = -(1 + e) * rel / (1 / ma + 1 / mb);
+        const ram = ramBonus(a, b);              // embestida: restitución extra
+        const e = 1.35 + ram, jimp = -(1 + e) * rel / (1 / ma + 1 / mb);
         a.vx -= jimp * nx / ma; a.vz -= jimp * nz / ma;
         b.vx += jimp * nx / mb; b.vz += jimp * nz / mb;
         const cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2;
-        for (let k = 0; k < 4; k++) spawnSmoke(cx, cz, 0xffd9a0);
+        const puffs = ram > 0 ? 8 : 4;
+        for (let k = 0; k < puffs; k++) spawnSmoke(cx, cz, ram > 0 ? 0xff3d6e : 0xffd9a0);
         sfx.thud(Math.min(1, jimp / 30));
       }
     }
